@@ -1,0 +1,25 @@
+extends ../../layouts/default.pug
+include ../../mixins/box-head.pug
+
+block main
+  .container.my-3
+    +box-head("Danh sách sản phẩm")
+
+    .row
+      each item in courses
+        .col-6.mb-3
+          .product-item
+            .inner-image
+              img(src=item.CoursePicture, alt=item.CourseName)
+            .inner-content
+              h3.inner-title
+                a(
+                  href=`/courses/detail/${item.CourseSlug}`
+                  ) #{item.CourseName}
+              h6.inner-title 
+                #{item.CourseInstructor}
+              p. 
+                !{item.CourseDescription}
+              .inner-price-new #{item.CoursePrice}$
+              .inner-price-old #{item.CourseDuration}
+              .inner-discount #{item.CourseBought}

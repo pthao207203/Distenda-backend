@@ -1,0 +1,25 @@
+.sider 
+  .inner-menu 
+    ul 
+      if (role.RolePermissions.includes("dashboard_view"))
+        li 
+          a(href=`${prefixAdmin}/dashboard`) Trang tổng quan
+      if (role.RolePermissions.includes("category_view"))
+        li 
+          a(href=`${prefixAdmin}/category`) Danh mục khoá học
+      if (role.RolePermissions.includes("course_view"))
+        li 
+          a(href=`${prefixAdmin}/courses`) Danh sách khoá học
+      if (role.RolePermissions.includes("role_view"))
+        li 
+          a(href=`${prefixAdmin}/role`) Nhóm quyền
+      if (role.RolePermissions.includes("role_permissions"))
+        li 
+          a(href=`${prefixAdmin}/role/permission`) Phân quyền
+      if (role.RolePermissions.includes("admin_view"))
+        li 
+          a(href=`${prefixAdmin}/admin`) Tài khoản Admin
+      li 
+        a(href=`${prefixAdmin}/user`) Tài khoản User
+      li 
+        a(href=`${prefixAdmin}/setting/general`) Cài đặt chung
