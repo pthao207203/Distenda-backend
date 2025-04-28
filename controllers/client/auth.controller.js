@@ -59,6 +59,7 @@ const axios = require("axios");
 
 module.exports.loginFacebook = async (req, res) => {
   const { accessToken, userID } = req.body;
+  console.log(req.body)
   try {
     // Gọi API Facebook để lấy thông tin user
     const fbRes = await axios.get(`https://graph.facebook.com/${userID}`, {
@@ -83,8 +84,6 @@ module.exports.loginFacebook = async (req, res) => {
 
     res.cookie("user_token", user.UserToken, {
       secure: true,
-      httpOnly: false,
-      sameSite: 'None',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
