@@ -18,7 +18,7 @@ module.exports.index = async (req, res) => {
   for (const course of courses) {
     const intructor = await Admin.findOne({ _id: course.CourseIntructor });
     // console.log(intructor)
-    course.intructor = intructor
+    course.intructor = intructor.AdminFullName
   }
 
   res.json(courses)
@@ -63,7 +63,7 @@ module.exports.detail = async (req, res) => {
         const video = await Video.find({
           LessonId: item._id,
           VideoDeleted: 1
-        })
+        }).select("VideoName")
         if (video.length != 0) {
           item.video = video
         }
@@ -73,7 +73,7 @@ module.exports.detail = async (req, res) => {
         const exer = await Exercise.findOne({
           LessonId: item._id,
           ExerciseDeleted: 1
-        })
+        }).select("ExerciseName")
         if (exer) {
           item.exercise = exer
         }
@@ -85,7 +85,7 @@ module.exports.detail = async (req, res) => {
       for (const item of course.CourseReview) {
         const user = await User.findOne({
           _id: item.UserId,
-        })
+        }).select("UserFullName UserAvatar")
         if (user) {
           item.user = user
         }

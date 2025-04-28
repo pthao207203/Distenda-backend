@@ -1,8 +1,6 @@
 const Course = require("../../models/course.model");
 const Category = require("../../models/category.model")
 const Admin = require("../../models/admin.model")
-const Lesson = require("../../models/lesson.model")
-const Video = require("../../models/video.model")
 const createTreeHelper = require("../../helpers/createTree");
 
 
@@ -64,13 +62,20 @@ module.exports.detail = async (req, res) => {
       course.intructor = intructor.AdminFullName
     }
 
-    res.json(courses)
+    res.json({
+      courses: courses,
+      category: category.CategoryName
+    })
     // res.render('client/pages/courses/index', {
     //   courses: courses,
     //   allCategory: allCategory,
     // });
   } catch (error) {
     req.flash("error", "Không tìm thấy danh mục!")
-    res.redirect(`/courses`)
+    // res.redirect(`/courses`)
+    res.json({
+      code: 404,
+      message: "Không tìm thấy danh mục!"
+    })
   }
 }
