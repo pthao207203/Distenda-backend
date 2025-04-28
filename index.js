@@ -77,7 +77,7 @@ const io = require('socket.io')(app.listen(port, () => {
   console.log(`🚀 Server with Socket.IO is running on port ${port}`);
 }), {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3002"],
+    origin: ["http://localhost:3000", "http://localhost:3002", "https://distenda.netlify.app"],
     methods: ["GET", "POST"],
     credentials: true
   }
