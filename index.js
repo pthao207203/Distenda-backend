@@ -28,7 +28,7 @@ app.use(
 );
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3002'],
+  origin: ['http://localhost:3000', 'http://localhost:3002', "https://distenda.netlify.app"],
   credentials: true // Cho phép gửi cookies
 }));
 app.use(methodOverride("_method"));
