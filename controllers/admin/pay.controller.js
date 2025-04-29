@@ -96,21 +96,20 @@ module.exports.handleCallback = async (req, res) => {
 module.exports.pay = async (req, res) => {
   const pays = await Pay.find().lean().sort({
     "createdBy.createdAt": -1
-  });
+  }).select("UserId CourseId PayProfit PayStatus PayTotal createdBy orderId");
   for (const pay of pays) {
     const user = await User.findOne({
       _id: pay.UserId,
-    });
+    }).select("UserFullName");
     if (user) {
-      pay.user = user.UserFullName;
+      pay.userName = user.UserFullName;
     }
 
     const course = await Course.findOne({
       _id: pay.CourseId,
-    });
-    console.log(course)
+    }).select("CourseName");
     if (course) {
-      pay.course = course.CourseName;
+      pay.courseName = course.CourseName;
     }
   }
   res.json(pays)
