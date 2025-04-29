@@ -17,6 +17,8 @@ router.post("/profile", controller.profilePost);
 
 router.get("/profile/edit", controller.profileEdit);
 
+router.get("/me", controller.getCurrentUser);
+
 router.post('/comment/add/:CourseID', controller.addComment)
 
 router.post("/video-status/mark-video-completed", controller.markVideoAsCompleted);

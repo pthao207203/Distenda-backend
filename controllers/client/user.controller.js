@@ -5,6 +5,20 @@ const Video = require("../../models/video.model");
 const md5 = require("md5");
 const mongoose = require("mongoose");
 
+module.exports.getCurrentUser = async (req, res) => {
+  const token = req.cookies.user_token;
+  if (!token) {
+    return res.status(401).json({ message: "Chưa đăng nhập" });
+  }
+
+  const user = await User.findOne({ UserToken: token }).lean();
+  if (!user) {
+    return res.status(404).json({ message: "Không tìm thấy người dùng" });
+  }
+
+  res.json(user);
+};
+
 // // [GET] /user/like/add/:CourseID
 module.exports.addLike = async (req, res) => {
   if (req.cookies.user_token) {
