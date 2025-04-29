@@ -85,7 +85,8 @@ module.exports.passwordOTP = async (req, res) => {
 
     res.json({
       code: 200,
-      message: "Đăng nhập thành công!"
+      message: "Đăng nhập thành công!",
+      token: admin.AdminToken
     })
   } else {
     const result = await ForgotPassword.findOne({
@@ -109,7 +110,8 @@ module.exports.passwordOTP = async (req, res) => {
 
     res.json({
       code: 200,
-      message: "Đăng nhập thành công!"
+      message: "Đăng nhập thành công!",
+      token: admin.AdminToken
     })
   }
 };
