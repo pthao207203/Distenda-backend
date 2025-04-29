@@ -57,6 +57,7 @@ module.exports.detail = async (req, res) => {
     RoleDeleted: 1,
   })
   admin.roles = roles ? roles : null;
+  res.json(admin)
 };
 
 // [GET] /admin/admin/create
