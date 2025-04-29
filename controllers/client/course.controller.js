@@ -63,7 +63,7 @@ module.exports.detail = async (req, res) => {
         const video = await Video.find({
           LessonId: item._id,
           VideoDeleted: 1
-        }).select("VideoName")
+        }).select("VideoName VideoSlug")
         if (video.length != 0) {
           item.video = video
         }
