@@ -178,7 +178,12 @@ module.exports.loginPost = async (req, res) => {
 
 // [GET] /auth/logout
 module.exports.logout = (req, res) => {
-  res.clearCookie("user_token");
+  res.clearCookie("user_token", {
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+  });
+
   // res.redirect(`/auth/login`);
   res.json({
     code: 200,

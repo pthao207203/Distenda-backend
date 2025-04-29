@@ -116,7 +116,11 @@ module.exports.passwordOTP = async (req, res) => {
 
 // [GET] /admin/auth/logout
 module.exports.logout = (req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+  });
   res.json({
     code: 200,
     message: "Đăng xuất thành công!"
@@ -125,6 +129,6 @@ module.exports.logout = (req, res) => {
 
 // [GET] /admin/auth/setting
 module.exports.setting = async (req, res) => {
-  const setting = await Setting.findOne().lean()
+  const setting = await Setting.findOne().lean().select("WebsiteIcon")
   res.json(setting)
 };
