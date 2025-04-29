@@ -1,33 +1,32 @@
 const Course = require("../../models/course.model");
-const Category = require("../../models/category.model")
-const Admin = require("../../models/admin.model")
-const Lesson = require("../../models/lesson.model")
-const Video = require("../../models/video.model")
-const Exercise = require("../../models/exercise.model")
-const User = require("../../models/user.model")
+const Category = require("../../models/category.model");
+const Admin = require("../../models/admin.model");
+const Lesson = require("../../models/lesson.model");
+const Video = require("../../models/video.model");
+const Exercise = require("../../models/exercise.model");
+const User = require("../../models/user.model");
 const createTreeHelper = require("../../helpers/createTree");
-
 
 // [GET] /courses
 module.exports.index = async (req, res) => {
   const courses = await Course.find({
     CourseDeleted: 1,
-    CourseStatus: 1
+    CourseStatus: 1,
   }).lean();
 
   for (const course of courses) {
     const intructor = await Admin.findOne({ _id: course.CourseIntructor });
     // console.log(intructor)
-    course.intructor = intructor
+    course.intructor = intructor.AdminFullName;
   }
 
-  res.json(courses)
+  res.json(courses);
   // res.render('client/pages/courses/index', {
   //   pageTitle: "Danh sách khoá học",
   //   courses: courses,
   //   allCategory: newCategory,
   // })
-}
+};
 
 // [GET] /courses/detail/:CourseSlug
 module.exports.detail = async (req, res) => {
@@ -35,9 +34,9 @@ module.exports.detail = async (req, res) => {
     const find = {
       CourseDeleted: 1,
       CourseSlug: req.params.CourseSlug,
-      CourseStatus: 1
-    }
-    let course = {}
+      CourseStatus: 1,
+    };
+    let course = {};
     course = await Course.findOne(find).lean();
     // console.log(course)
 
@@ -63,19 +62,18 @@ module.exports.detail = async (req, res) => {
         const video = await Video.find({
           LessonId: item._id,
           VideoDeleted: 1
-        })
+        }).select("VideoName VideoSlug")
         if (video.length != 0) {
-          item.video = video
+          item.video = video;
         }
-
       }
       for (const item of lesson) {
         const exer = await Exercise.findOne({
           LessonId: item._id,
-          ExerciseDeleted: 1
-        })
+          ExerciseDeleted: 1,
+        }).select("ExerciseName");
         if (exer) {
-          item.exercise = exer
+          item.exercise = exer;
         }
       }
       course.lesson = lesson;
@@ -85,9 +83,9 @@ module.exports.detail = async (req, res) => {
       for (const item of course.CourseReview) {
         const user = await User.findOne({
           _id: item.UserId,
-        })
+        }).select("UserFullName UserAvatar");
         if (user) {
-          item.user = user
+          item.user = user;
         }
       }
       // console.log(lesson)
@@ -96,63 +94,75 @@ module.exports.detail = async (req, res) => {
     if (res.locals.user) {
       const test = await User.findOne({
         _id: res.locals.user._id,
-        "UserCourse.CourseId": course._id
-      })
+        "UserCourse.CourseId": course._id,
+      });
       if (test) {
-        console.log(test)
+        console.log(test);
         course.has = 1;
         const test1 = await User.findOne({
           _id: res.locals.user._id,
           UserCourse: {
             $elemMatch: {
               CourseId: course._id,
-              CourseReview: 0
-            }
-          }
+              CourseReview: 0,
+            },
+          },
         });
-        console.log(test1)
+        console.log(test1);
         if (test1) {
           course.review = 0;
         }
+        const test2 = await User.findOne({
+          _id: res.locals.user._id,
+          UserCourse: {
+            $elemMatch: {
+              CourseId: course._id,
+              CourseStatus: 0,
+            },
+          },
+        });
+        if (test2) {
+          course.status = 0;
+        }
       }
-      course.user = res.locals.user
+      course.user = res.locals.user;
     }
-    res.json(course)
+    res.json(course);
     // res.render('client/pages/courses/detail', {
     //   pageTitle: course.CourseName,
     //   course: course,
     // });
   } catch (error) {
-    req.flash("error", "Không tìm thấy sản phẩm!")
-    res.redirect(`/courses`)
+    req.flash("error", "Không tìm thấy sản phẩm!");
+    res.redirect(`/courses`);
   }
-}
+};
 
 // [GET] /courses/completed
 module.exports.indexCompleted = async (req, res) => {
   // console.log(res.locals.user.UserCourse)
   if (res.locals.user) {
-    const listSubId = res.locals.user.UserCourse
-      .filter(item => item.CourseStatus == 1)
-      .map(item => item.CourseId);
+    const listSubId = res.locals.user.UserCourse.filter(
+      (item) => item.CourseStatus == 1
+    ).map((item) => item.CourseId);
     // console.log(listSubId)
     const courses = await Course.find({
       _id: { $in: [...listSubId] },
       CourseStatus: 1,
-      CourseDeleted: 1
+      CourseDeleted: 1,
     }).lean();
     // console.log(courses)
 
     for (const course of courses) {
       const intructor = await Admin.findOne({ _id: course.CourseIntructor });
       // console.log(intructor)
-      course.intructor = intructor
+      course.intructor = intructor;
     }
 
-    res.json(courses)
+    res.json(courses);
   } else {
-    const courses = null
-    res.json(courses)
+    const courses = null;
+    res.json(courses);
   }
 
   // res.render('client/pages/courses/index', {
@@ -160,69 +170,68 @@ module.exports.indexCompleted = async (req, res) => {
   //   courses: courses,
   //   allCategory: newCategory,
   // })
-}
+};
 
 // [GET] /courses/purchased
 module.exports.indexPurchased = async (req, res) => {
   if (res.locals.user) {
     // console.log(res.locals.user.UserCourse)
-    const listSubId = res.locals.user?.UserCourse
-      .map(item => item.CourseId);
+    const listSubId = res.locals.user?.UserCourse.map((item) => item.CourseId);
     // console.log(listSubId)
     const courses = await Course.find({
       _id: { $in: [...listSubId] },
       CourseStatus: 1,
-      CourseDeleted: 1
+      CourseDeleted: 1,
     }).lean();
     // console.log(courses)
 
     for (const course of courses) {
       const intructor = await Admin.findOne({ _id: course.CourseIntructor });
       // console.log(intructor)
-      course.intructor = intructor
+      course.intructor = intructor;
     }
 
-    res.json(courses)
+    res.json(courses);
   } else {
-    const courses = null
-    res.json(courses)
+    const courses = null;
+    res.json(courses);
   }
   // res.render('client/pages/courses/index', {
   //   pageTitle: "Danh sách khoá học",
   //   courses: courses,
   //   allCategory: newCategory,
   // })
-}
+};
 
 // [GET] /courses/studying
 module.exports.indexStudying = async (req, res) => {
   if (res.locals.user) {
-    console.log(res.locals.user.UserCourse)
-    const listSubId = res.locals.user.UserCourse
-      .filter(item => item.CourseStatus == 0)
-      .map(item => item.CourseId);
+    console.log(res.locals.user.UserCourse);
+    const listSubId = res.locals.user.UserCourse.filter(
+      (item) => item.CourseStatus == 0
+    ).map((item) => item.CourseId);
     // console.log(listSubId)
     const courses = await Course.find({
       _id: { $in: [...listSubId] },
       CourseStatus: 1,
-      CourseDeleted: 1
+      CourseDeleted: 1,
     }).lean();
     // console.log(courses)
 
     for (const course of courses) {
       const intructor = await Admin.findOne({ _id: course.CourseIntructor });
       // console.log(intructor)
-      course.intructor = intructor
+      course.intructor = intructor;
     }
 
-    res.json(courses)
+    res.json(courses);
   } else {
-    const courses = null
-    res.json(courses)
+    const courses = null;
+    res.json(courses);
   }
   // res.render('client/pages/courses/index', {
   //   pageTitle: "Danh sách khoá học",
   //   courses: courses,
   //   allCategory: newCategory,
   // })
-}
+};

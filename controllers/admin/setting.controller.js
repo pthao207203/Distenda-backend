@@ -8,10 +8,6 @@ const createTreeHelper = require("../../helpers/createTree");
 module.exports.general = async (req, res) => {
   const setting = await Setting.findOne({}).lean()
   res.json(setting)
-  // res.render("admin/pages/setting/general", {
-  //   pageTitle: "Cài đặt chung",
-  //   setting: setting,
-  // });
 };
 
 // [POST] /admin/setting/general
@@ -29,5 +25,4 @@ module.exports.generalPatch = async (req, res) => {
     code: 200,
     message: "Cập nhật thành công!"
   })
-  // res.redirect("back")
 };

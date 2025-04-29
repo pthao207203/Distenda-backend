@@ -1,6 +1,8 @@
 const User = require("../../models/user.model");
 const Setting = require("../../models/setting.model");
 const ForgotPassword = require("../../models/forgotpw.model");
+const Course = require("../../models/course.model");
+const Pay = require("../../models/pay.model");
 const md5 = require("md5");
 const generateHelper = require("../../helpers/generate");
 const sendMailHelper = require("../../helpers/sendMail");
@@ -59,6 +61,7 @@ const axios = require("axios");
 
 module.exports.loginFacebook = async (req, res) => {
   const { accessToken, userID } = req.body;
+  console.log(req.body)
   try {
     // Gọi API Facebook để lấy thông tin user
     const fbRes = await axios.get(`https://graph.facebook.com/${userID}`, {
@@ -175,7 +178,12 @@ module.exports.loginPost = async (req, res) => {
 
 // [GET] /auth/logout
 module.exports.logout = (req, res) => {
-  res.clearCookie("user_token");
+  res.clearCookie("user_token", {
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+  });
+
   // res.redirect(`/auth/login`);
   res.json({
     code: 200,

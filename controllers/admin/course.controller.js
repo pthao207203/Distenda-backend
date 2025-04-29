@@ -8,9 +8,17 @@ const createTreeHelper = require("../../helpers/createTree");
 
 // [GET] /admin/courses
 module.exports.index = async (req, res) => {
-  let find = {
-    CourseDeleted: 1,
-  };
+  let find
+  if (!res.locals.role?.RolePermissions?.includes("course_view")) {
+    find = {
+      CourseDeleted: 1,
+      CourseIntructor: res.locals.user._id
+    };
+  } else {
+    find = {
+      CourseDeleted: 1,
+    };
+  }
 
   // Bộ lọc
   if (req.query.status == "active") {
@@ -203,7 +211,7 @@ module.exports.detailItem = async (req, res) => {
       });
       course.lesson = lesson;
     }
-    res.json(course);
+    res.json({ course: course, user: res.locals.user._id });
     // res.render("admin/pages/course/detail", {
     //   pageTitle: course.CourseName,
     //   course: course,
@@ -292,7 +300,7 @@ module.exports.editPost = async (req, res) => {
         }
       }
     }
-    
+
     res.json({
       code: 200,
       message: "Cập nhật thành công!",
