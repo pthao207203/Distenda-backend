@@ -86,6 +86,8 @@ module.exports.loginFacebook = async (req, res) => {
 
     res.cookie("user_token", user.UserToken, {
       secure: true,
+      httpOnly: false,
+      sameSite: 'None',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 

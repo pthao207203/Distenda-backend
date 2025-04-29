@@ -75,7 +75,13 @@ module.exports.passwordOTP = async (req, res) => {
     AdminEmail: AdminEmail
   }).select("AdminRole_id AdminToken")
   if (admin.AdminRole_id.toString() === "680fbf236652357c0e6421e9") {
-    res.cookie("token", admin.AdminToken)
+
+    res.cookie("token", admin.AdminToken, {
+      secure: true,
+      httpOnly: false,
+      sameSite: 'None',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    })
 
     res.json({
       code: 200,
