@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema({
     default: 1,
   },
   UserId: String, // Ai nhận được thông báo này (optional nếu bạn muốn global)
-
+  NotificationLink: { type: String, default: null }, 
   createdBy: {
     UserId: String,
     createdAt: {
