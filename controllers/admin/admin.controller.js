@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const md5 = require("md5");
 const Admin = require("../../models/admin.model");
 const Role = require("../../models/role.model");
 const Course = require("../../models/course.model");
@@ -97,7 +96,6 @@ module.exports.createPost = async (req, res) => {
   }
   req.body.AdminStatus = 1;
   req.body.AdminDeleted = 1;
-  req.body.AdminPassword = md5(req.body.AdminPassword);
   req.body.AdminToken = generateHelper.generateRandomString(30);
   req.body.createdBy = {
     UserId: res.locals.user.id,
