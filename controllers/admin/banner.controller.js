@@ -21,12 +21,7 @@ module.exports.index = async (req, res) => {
     });
     item.course = course;
   }
-  console.log(banner)
   res.json(banner)
-  // res.render("admin/pages/admin/index", {
-  //   pageTitle: "Danh sách tài khoản",
-  //   admin: admin,
-  // });
 };
 
 // [GET] /admin/banner/detail/:BannerID
@@ -41,28 +36,17 @@ module.exports.detail = async (req, res) => {
     _id: banner.BannerCourse
   })
   banner.course = course
-  console.log(banner)
   res.json(banner)
-  // res.render("admin/pages/admin/index", {
-  //   pageTitle: "Danh sách tài khoản",
-  //   admin: user,
-  // });
 };
 
 // [GET] /admin/banner/create
 module.exports.createItem = async (req, res) => {
   const course = await Course.find({ CourseDeleted: 1 });
-
-  // res.render("admin/pages/admin/create", {
-  //   pageTitle: "Thêm tài khoản",
-  //   roles: role,
-  // });
   res.json(course)
 };
 
 // [POST] /admin/banner/create
 module.exports.createPost = async (req, res) => {
-  // console.log(req.body)
   req.body.createdBy = {
     UserId: res.locals.user.id,
   };
@@ -73,8 +57,6 @@ module.exports.createPost = async (req, res) => {
     code: 200,
     message: "Tạo tài khoản thành công!"
   })
-  // req.flash("success", "Thêm tài khoản admin thành công!");
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };
 
 // // [PATCH] /admin/banner/change-status/:status/:AdminID
@@ -107,9 +89,6 @@ module.exports.deleteItem = async (req, res) => {
     code: 200,
     message: "Xoá banner thành công!!!",
   })
-
-  // req.flash("success", "Xóa thành công!");
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };
 
 // [GET] /admin/banner/edit/:BannerID
@@ -125,26 +104,18 @@ module.exports.editItem = async (req, res) => {
     const course = await Course.find({ CourseDeleted: 1 });
     banner.course = course
     res.json(banner)
-    // res.render("admin/pages/admin/edit", {
-    //   pageTitle: "Chỉnh sửa khoá học",
-    //   admin: admin,
-    //   listRole: listRole,
-    // });
   } catch (error) {
     console.log(error)
     res.json({
       code: 400,
       message: "Không tìm banner!"
     })
-    // req.flash("error", "Không tìm thấy tài khoản!");
-    // res.redirect(`${systemConfig.prefixAdmin}/admin`);
   }
 };
 
 // [POST] /admin/banner/edit/:BannerID
 module.exports.editPost = async (req, res) => {
   try {
-    console.log(req.body)
     const { editedBy, ...updateFields } = req.body;
     const newEditedBy = {
       UserId: res.locals.user.id,
@@ -159,7 +130,6 @@ module.exports.editPost = async (req, res) => {
       }
     );
 
-    // req.flash("success", "Cập nhật thành công!");
     res.json({
       code: 200,
       message: "Cập nhật thành công!",
@@ -170,7 +140,5 @@ module.exports.editPost = async (req, res) => {
       code: 200,
       message: "Cập nhật thất bại!",
     })
-    // req.flash("error", "Cập nhật thất bại!");
   }
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };

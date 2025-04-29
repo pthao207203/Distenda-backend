@@ -211,7 +211,7 @@ module.exports.detailItem = async (req, res) => {
       });
       course.lesson = lesson;
     }
-    res.json(course);
+    res.json({ course: course, user: res.locals.user._id });
     // res.render("admin/pages/course/detail", {
     //   pageTitle: course.CourseName,
     //   course: course,
