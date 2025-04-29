@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const notificationController = require("../../controllers/client/notification.controller");
+const { checkCourseExpiry } = require("../../controllers/client/notification.controller");
 
-// Thêm thông báo
+// Các route đã có:
 router.post("/add", notificationController.add);
-
-// Lấy thông báo của user
 router.get("/user/:userToken", notificationController.getUserNotifications);
-
-// Xoá thông báo
 router.delete("/:id", notificationController.deleteNotification);
+
+// Thêm route kiểm tra khóa học sắp hết hạn
+router.post("/check-expiry", checkCourseExpiry); //
 
 module.exports = router;
