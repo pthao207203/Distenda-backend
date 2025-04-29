@@ -257,7 +257,9 @@ module.exports.header = async (req, res) => {
 // [GET] /admin/dashboard/role
 module.exports.role = async (req, res) => {
   const role = res.locals.role
+  const user = res.locals.user
   res.json({
     role: role,
+    user: user,
   })
 };
