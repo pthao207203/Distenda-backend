@@ -56,7 +56,6 @@ module.exports.detail = async (req, res) => {
 // [POST] /admin/voucher/create
 module.exports.createPost = async (req, res) => {
   try {
-    // console.log("req.body", req.body);
     req.body.createdBy = {
       UserId: res.locals?.user?.id || "admin123",
     };

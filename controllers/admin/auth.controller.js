@@ -6,31 +6,15 @@ const sendMailHelper = require("../../helpers/sendMail")
 
 const systemConfig = require("../../config/system");
 
-// [GET] /admin/auth/login
-module.exports.login = (req, res) => {
-  console.log(req.cookies.token);
-  if (req.cookies.token) {
-    console.log(req.cookies.token);
-    res.redirect(`${systemConfig.prefixAdmin}/dashboard`);
-  } else {
-    res.render("admin/pages/auth/login", {
-      pageTitle: "Đăng nhập",
-    });
-  }
-};
-
 // [POST] /admin/auth/login
 module.exports.loginPost = async (req, res) => {
   const { AdminEmail } = req.body;
-  console.log(AdminEmail);
   const user = await Admin.findOne({
     AdminEmail: AdminEmail,
     AdminDeleted: 1,
   });
 
   if (!user) {
-    // req.flash("error", "Email không tồn tại!");
-    // res.redirect("back");
     res.json({
       code: 400,
       message: "Email không tồn tại!"
@@ -43,11 +27,8 @@ module.exports.loginPost = async (req, res) => {
       code: 400,
       message: "Tài khoản đang bị khóa!"
     })
-    // req.flash("error", "Tài khoản đang bị khóa!");
-    // res.redirect("back");
     return;
   }
-  // console.log(user);
   if (user.AdminRole_id.toString() === "680fbf236652357c0e6421e9") {
     res.json({
       code: 200,
@@ -60,7 +41,6 @@ module.exports.loginPost = async (req, res) => {
       FPOTP: otp,
       expireAt: Date.now(),
     }
-    // console.log(objectForgotPw)
     const forgotPw = new ForgotPassword(objectForgotPw)
     await forgotPw.save()
 
@@ -79,7 +59,6 @@ module.exports.loginPost = async (req, res) => {
     `
     sendMailHelper.sendMail(AdminEmail, Subject, html)
 
-    // res.cookie("token", user.AdminToken);
     res.json({
       code: 200,
       message: "Chúng tôi vừa gửi một mã OTP tới Email của bạn!"
@@ -91,7 +70,6 @@ module.exports.loginPost = async (req, res) => {
 module.exports.passwordOTP = async (req, res) => {
   const AdminEmail = req.body.AdminEmail
   const OTP = req.body.OTP
-  console.log(AdminEmail, OTP)
 
   const admin = await Admin.findOne({
     AdminEmail: AdminEmail
@@ -116,7 +94,12 @@ module.exports.passwordOTP = async (req, res) => {
       return;
     }
 
-    res.cookie("token", admin.AdminToken)
+    res.cookie("token", admin.AdminToken, {
+      secure: true,
+      httpOnly: false,
+      sameSite: 'None',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    })
 
     res.json({
       code: 200,
@@ -128,7 +111,6 @@ module.exports.passwordOTP = async (req, res) => {
 // [GET] /admin/auth/logout
 module.exports.logout = (req, res) => {
   res.clearCookie("token");
-  // res.redirect(`${systemConfig.prefixAdmin}/auth/login`);
   res.json({
     code: 200,
     message: "Đăng xuất thành công!"

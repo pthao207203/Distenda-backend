@@ -25,10 +25,6 @@ module.exports.index = async (req, res) => {
     }
   }
   res.json(admin)
-  // res.render("admin/pages/admin/index", {
-  //   pageTitle: "Danh sách tài khoản",
-  //   admin: admin,
-  // });
 };
 
 // [GET] /admin/admin/detail/:AdminID
@@ -60,30 +56,17 @@ module.exports.detail = async (req, res) => {
   const roles = await Role.find({
     RoleDeleted: 1,
   })
-  console.log("roles", roles)
   admin.roles = roles ? roles : null;
-  // console.log(admin)
-  res.json(admin)
-  // res.render("admin/pages/admin/index", {
-  //   pageTitle: "Danh sách tài khoản",
-  //   admin: user,
-  // });
 };
 
 // [GET] /admin/admin/create
 module.exports.createItem = async (req, res) => {
   const role = await Role.find({ RoleDeleted: 1 });
-
-  // res.render("admin/pages/admin/create", {
-  //   pageTitle: "Thêm tài khoản",
-  //   roles: role,
-  // });
   res.json(role)
 };
 
 // [POST] /admin/admin/create
 module.exports.createPost = async (req, res) => {
-  // console.log(req.body)
   const test = await Admin.findOne({
     AdminEmail: req.body.AdminEmail
   })
@@ -107,8 +90,6 @@ module.exports.createPost = async (req, res) => {
     code: 200,
     message: "Tạo tài khoản thành công!"
   })
-  // req.flash("success", "Thêm tài khoản admin thành công!");
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };
 
 // // [PATCH] /admin/admin/change-status/:status/:AdminID
@@ -141,8 +122,6 @@ module.exports.deleteItem = async (req, res) => {
     code: 200,
     message: "Xoá thành công!"
   })
-  // req.flash("success", "Xóa thành công!");
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };
 
 // [GET] /admin/admin/edit/:AdminID
@@ -194,15 +173,11 @@ module.exports.editPost = async (req, res) => {
       code: 200,
       message: "Cập nhật thành công!"
     })
-    // req.flash("success", "Cập nhật thành công!");
   } catch (error) {
-    // req.flash("error", "Cập nhật thất bại!");
     console.log(error)
     res.json({
       code: 400,
       message: "Cập nhật thất bại!"
     })
   }
-
-  // res.redirect(`${systemConfig.prefixAdmin}/admin`);
 };

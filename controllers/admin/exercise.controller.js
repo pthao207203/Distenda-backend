@@ -18,67 +18,12 @@ module.exports.deleteItem = async (req, res) => {
       },
     }
   );
-
-  req.flash("success", "Xóa thành công!");
-  res.redirect("back");
+  res.json({
+    code: 200,
+    message: "Xoá thành công!"
+  })
 };
 
-// [GET] /admin/exercise/create/:LessonID
-module.exports.createItem = async (req, res) => {
-  const id = req.params.LessonID;
-  const lesson = await Lesson.findOne({
-    _id: id,
-    LessonDeleted: 1,
-  });
-
-  res.render("admin/pages/exercise/create", {
-    pageTitle: "Thêm bài tập",
-    lesson: lesson,
-  });
-};
-
-// [POST] /admin/exercise/create/:LessonID
-module.exports.createPost = async (req, res) => {
-  req.body.createdBy = {
-    UserId: res.locals.user.id,
-  };
-  req.body.LessonId = req.params.LessonID;
-  const count = await Exercise.countDocuments({
-    LessonId: req.params.LessonID,
-  });
-
-  const exer = new Exercise(req.body);
-
-  await exer.save();
-
-  res.redirect(
-    `${systemConfig.prefixAdmin}/lesson/detail/${req.params.LessonID}`
-  );
-};
-
-// [GET] /admin/exercise/edit/:ExerciseID
-module.exports.editItem = async (req, res) => {
-  try {
-    const find = {
-      ExerciseDeleted: 1,
-      _id: req.params.ExerciseID,
-    };
-    const exer = await Exercise.findOne(find);
-
-    const lesson = await Lesson.findOne({
-      _id: exer.LessonId,
-    });
-    exer.lesson = lesson;
-
-    res.render("admin/pages/exercise/edit", {
-      pageTitle: "Chỉnh sửa chương học",
-      exer: exer,
-    });
-  } catch (error) {
-    req.flash("error", "Không tìm thấy chương học!");
-    res.redirect("back");
-  }
-};
 
 // [POST] /admin/exercise/edit/:LessonID
 module.exports.editPost = async (req, res) => {
@@ -156,23 +101,10 @@ module.exports.detailItem = async (req, res) => {
     };
     res.json(lesson)
 
-    // const count = await Lesson.countDocuments({
-    //   CourseId: req.params.CourseID,
-    // });
-    // if (count > 0) {
-    //   const lesson = await Lesson.find({
-    //     CourseId: req.params.CourseID,
-    //     LessonDeleted: 1,
-    //   });
-    //   course.lesson = lesson;
-    // }
-
-    // res.render("admin/pages/exercise/detail", {
-    //   pageTitle: exer.ExerciseName,
-    //   exer: exer,
-    // });
   } catch (error) {
-    req.flash("error", "Không tìm thấy sản phẩm!");
-    res.redirect(`${systemConfig.prefixAdmin}/courses`);
+    res.json({
+      code: 400,
+      message: error
+    })
   }
 };

@@ -21,12 +21,7 @@ module.exports.index = async (req, res) => {
 
   const newList = createTreeHelper.tree(categories);
 
-  // console.log(newList)
   res.json(newList)
-  // res.render("admin/pages/category/index", {
-  //   pageTitle: "Danh mục khoá học",
-  //   categories: newList,
-  // });
 };
 
 // [GET] /admin/ategory/create
@@ -47,8 +42,6 @@ module.exports.createItem = async (req, res) => {
 
 // [POST] /admin/category/create
 module.exports.createPost = async (req, res) => {
-  console.log(req.body);
-  // req.body.CategoryStatus = req.body.CategoryStatus == "active" ? 1 : 0;
 
   if (!req.body.CategoryPosition) {
     const count = await Category.countDocuments();
@@ -66,7 +59,6 @@ module.exports.createPost = async (req, res) => {
     code: 200,
     message: "Thêm phân loại thành công!"
   })
-  // res.redirect(`${systemConfig.prefixAdmin}/category`);
 };
 
 // [PATCH] /admin/category/change-status/:status/:CategoryID

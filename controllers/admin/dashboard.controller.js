@@ -42,14 +42,14 @@ module.exports.dashboard = async (req, res) => {
     {
       $match: {
         "createdBy.createdAt": { $gte: startOfLastYear, $lt: now },  // Lọc theo khoảng thời gian từ 12 tháng trước đến tháng hiện tại
-         PayStatus: { $ne: 0 },  // Chỉ lấy các hóa đơn chưa bị hủy (PayStatus != 1)
+        PayStatus: { $ne: 0 },  // Chỉ lấy các hóa đơn chưa bị hủy (PayStatus != 1)
       }
     },
     {
       $project: {
         month: { $month: "$createdBy.createdAt" },  // Lấy tháng từ createdAt
         year: { $year: "$createdBy.createdAt" },   // Lấy năm từ createdAt
-        PayTotal: 1,  
+        PayTotal: 1,
         PayProfit: 1,  // Lấy các trường cần thiết
       },
     },
@@ -230,10 +230,6 @@ module.exports.dashboard = async (req, res) => {
 
 
   res.json(dashboard)
-  // res.render('admin/pages/dashboard/index', {
-  //   pageTitle: "Trang dashboard",
-  //   statistic: statistic
-  // });
 }
 
 // [GET] /admin/dashboard/header
@@ -261,7 +257,6 @@ module.exports.header = async (req, res) => {
 // [GET] /admin/dashboard/role
 module.exports.role = async (req, res) => {
   const role = res.locals.role
-  // console.log(role)
   res.json({
     role: role,
   })
