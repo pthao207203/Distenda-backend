@@ -23,16 +23,23 @@ module.exports.detail = async (req, res) => {
     _id: req.params.UserID,
   };
 
-  const user = await User.findOne(find).lean();
-  for (const courseUser of user.UserCourse) {
-    const course = await Course.findOne({
-      _id: courseUser.CourseId,
-    });
+  const user = await User.findOne(find)
+    .populate({
+      path: "UserCourse.CourseId",
+      model: "Course"
+    })
+    .lean();
 
-    if (course) {
-      courseUser.course = course;
-    }
+  if (!user) {
+    return res.status(404).json({ message: "Không tìm thấy người dùng" });
   }
+
+  user.UserCourse = user.UserCourse.map(uc => ({
+    ...uc,
+    course: uc.CourseId,
+    CourseId: uc.CourseId?._id || null
+  }));
+
   res.json(user)
 };
 

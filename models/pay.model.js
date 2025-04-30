@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const paySchema = new mongoose.Schema({
-  UserId: String,
-  CourseId: String,
+  UserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  CourseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
   PayTotal: Number,
   PayStatus: {
     type: Number,
@@ -22,7 +22,7 @@ const paySchema = new mongoose.Schema({
   editedBy: [{
     UserId: String,
     editedAt: Date,
-  }, ],
+  },],
 });
 
 const Pay = mongoose.model("Pay", paySchema, "Pay");

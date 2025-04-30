@@ -6,8 +6,8 @@ const Admin = require('../../models/admin.model');
 // [GET] Lấy danh sách giảng viên từ các khóa học đã đăng ký
 exports.getInstructorsByUserToken = async (req, res) => {
   try {
-    const userId = res.locals.user._id;
-    const user = await User.findById(userId);
+    console.log(req.body)
+    const user = res.locals.user;
     if (!user || !user.UserCourse || user.UserCourse.length === 0) {
       return res.status(200).json({ instructors: [] });
     }
@@ -15,13 +15,13 @@ exports.getInstructorsByUserToken = async (req, res) => {
     const courses = await Course.find({ _id: { $in: courseIds } });
     const instructorMap = new Map();
     courses.forEach(course => {
-      const rawInstructorId = course.CourseInstructor || course.CourseIntructor;
+      const rawInstructorId = course.CourseIntructor || course.CourseIntructor;
 
-    if (!rawInstructorId) return;
+      if (!rawInstructorId) return;
       const instructorId = rawInstructorId.toString();
       const courseName = course.CourseName || 'Không tên';
 
-    if (!instructorMap.has(instructorId)) {
+      if (!instructorMap.has(instructorId)) {
         instructorMap.set(instructorId, []);
       }
       instructorMap.get(instructorId).push(courseName);
@@ -70,7 +70,7 @@ exports.createMessage = async (req, res) => {
       receiver: { userId: receiverId, receiverRole },
       content: content || null,  // Nếu content rỗng, để là null
       image: image || null,  // Nếu image rỗng, để là null
-      file: isFileEmpty ? undefined : file, 
+      file: isFileEmpty ? undefined : file,
       isRead: false
     });
     console.log('📩 Đang tạo message:', req.body);
@@ -109,7 +109,7 @@ exports.getMessages = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   const userId = res.locals.user._id;
   const { instructorId } = req.params;
-  
+
   try {
     await Message.updateMany({
       'sender.userId': instructorId,

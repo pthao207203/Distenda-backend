@@ -12,14 +12,17 @@ module.exports.index = async (req, res) => {
     BannerDeleted: 1,
   };
 
-  const banner = await Banner.find(find).lean();
+  const banner = await Banner.find(find)
+    .populate({
+      path: "BannerCourse",
+      match: { CourseDeleted: 1 },
+      model: "Course"
+    })
+    .lean();
 
   for (const item of banner) {
-    const course = await Course.findOne({
-      _id: item.BannerCourse,
-      CourseDeleted: 1,
-    });
-    item.course = course;
+    item.course = item.BannerCourse || null;
+    delete item.BannerCourse;
   }
   res.json(banner)
 };
@@ -58,18 +61,6 @@ module.exports.createPost = async (req, res) => {
     message: "Tạo tài khoản thành công!"
   })
 };
-
-// // [PATCH] /admin/banner/change-status/:status/:AdminID
-// module.exports.changeStatus = async (req, res) => {
-//   const status = req.params.status;
-//   const CategoryID = req.params.CategoryID;
-
-//   await Category.updateOne({ _id: CategoryID}, {CategoryStatus: status == "active"?1:0})
-
-//   req.flash('success', 'Cập nhật trạng thái thành công');
-
-//   res.redirect('back')
-// }
 
 // [DELETE] /admin/banner/delete/:BannerID
 module.exports.deleteItem = async (req, res) => {

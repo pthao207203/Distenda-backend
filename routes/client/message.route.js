@@ -7,9 +7,9 @@ const upload = multer();
 const uploadCloud = require('../../middlewares/admin/uploadCloud.middleware');
 
 
-  router.get('/instructors', controller.getInstructorsByUserToken);
-  router.get('/messages', controller.getMessages);
-  router.post('/messages', controller.createMessage);
-  router.put('/messages/:instructorId/read-all',controller.markAsRead);
+router.get('/instructors', controller.getInstructorsByUserToken);
+router.get('/messages', controller.getMessages);
+router.post('/messages', controller.createMessage);
+router.put('/messages/:instructorId/read-all', controller.markAsRead);
 
 module.exports = router;

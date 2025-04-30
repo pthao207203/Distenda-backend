@@ -5,13 +5,19 @@ module.exports.index = async (req, res) => {
   const banners = await Banner.find({
     BannerDeleted: 1,
     BannerStatus: 1
-  }).lean();
+  })
+    .populate({
+      path: "BannerCourse",
+      model: "Course",
+      select: "CourseSlug"
+    })
+    .lean();
 
-  for (const banner of banners) {
-    const course = await Course.findOne({ _id: banner.BannerCourse });
-    // console.log(intructor)
-    banner.course = course
-  }
+  // Nếu muốn gán thành `banner.course` thay vì `BannerCourse`
+  const result = banners.map(banner => ({
+    ...banner,
+    course: banner.BannerCourse
+  }));
 
   res.json(banners)
   // res.render('client/pages/courses/index', {
