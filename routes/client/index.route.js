@@ -15,6 +15,7 @@ const exerciseRoutes = require("./exercise.route");
 const bannerRoutes = require("./banner.route");
 const notificationRoutes = require("./notification.route");
 const messageRoutes = require("./message.route");
+const siteContextRoutes = require("./siteContext.route.js");
 
 module.exports = (app) => {
   app.use(categoryHeader.CateHeader);
@@ -35,4 +36,5 @@ module.exports = (app) => {
   app.use('/pay', payRoutes);
   app.use('/notification', authMiddleware.requireAuth, notificationRoutes)
   app.use('/message', authMiddleware.requireAuth, messageRoutes)
+  app.use('/site-context', siteContextRoutes)
 }

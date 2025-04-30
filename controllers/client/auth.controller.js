@@ -1,6 +1,8 @@
 const User = require("../../models/user.model");
 const Setting = require("../../models/setting.model");
 const ForgotPassword = require("../../models/forgotpw.model");
+const Course = require("../../models/course.model");
+const Pay = require("../../models/pay.model");
 const md5 = require("md5");
 const generateHelper = require("../../helpers/generate");
 const sendMailHelper = require("../../helpers/sendMail");
@@ -84,6 +86,8 @@ module.exports.loginFacebook = async (req, res) => {
 
     res.cookie("user_token", user.UserToken, {
       secure: true,
+      httpOnly: false,
+      sameSite: 'None',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -174,7 +178,12 @@ module.exports.loginPost = async (req, res) => {
 
 // [GET] /auth/logout
 module.exports.logout = (req, res) => {
-  res.clearCookie("user_token");
+  res.clearCookie("user_token", {
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+  });
+
   // res.redirect(`/auth/login`);
   res.json({
     code: 200,
