@@ -55,7 +55,7 @@ module.exports.createPost = async (req, res) => {
   await banner.save();
   res.json({
     code: 200,
-    message: "Tạo tài khoản thành công!"
+    message: "Tạo banner thành công!"
   })
 };
 

@@ -278,7 +278,7 @@ module.exports.markVideoAsCompleted = async (req, res) => {
     );
     if (!hasLesson) {
       await User.updateOne(
-        { _id: userId, "UserCourse.CourseId": courseId },
+        { _id: userId, "UserCourse.CourseId": courseId, "UserCourse.CourseStatus": { $ne: 1 } },
         {
           $push: {
             "UserCourse.$.CourseProcess": {
@@ -295,6 +295,7 @@ module.exports.markVideoAsCompleted = async (req, res) => {
         {
           _id: userId,
           "UserCourse.CourseId": courseId,
+          "UserCourse.CourseStatus": { $ne: 1 },
           "UserCourse.CourseProcess": {
             $elemMatch: {
               LessonId: lessonId,
@@ -371,9 +372,6 @@ module.exports.markVideoAsCompleted = async (req, res) => {
     ]);
 
     const doneLessons = courseStats?.doneLessons || 0;
-
-    console.log("doneLessons", doneLessons);
-    console.log("totalLessons", totalLessons);
     // Khi tất cả lesson done: mark CourseStatus = 1 và clear LessonProcess
     if (doneLessons > 0 && doneLessons === totalLessons) {
       await User.updateOne(
