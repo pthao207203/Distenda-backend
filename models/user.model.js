@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   UserCourse: [
     {
       _id: false,
-      CourseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+      CourseId: String,
       CourseReview: {
         type: Number,
         default: 0,
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
       CourseProcess: [
         {
           _id: false,
-          LessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
+          LessonId: String,
           LessonStatus: {
             type: Number,
             default: 0,
