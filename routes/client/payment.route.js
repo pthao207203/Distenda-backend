@@ -6,7 +6,7 @@ const Course = require("../../models/course.model");
 const payController = require("../../controllers/client/pay.controller");
 
 // [POST] /pay/pos
-router.post('/pos', payController.payMoMoPOS);
+router.post('/pos', payController.payMoMo);
 
 router.post('/confirm', async (req, res) => {
    console.log("Xác nhận thanh toán với:", req.body);
