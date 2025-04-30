@@ -31,8 +31,8 @@ module.exports = (app) => {
   app.use('/video', authMiddleware.requireAuth, videoRoutes)
   app.use('/exercise', authMiddleware.requireAuth, exerciseRoutes)
  // Gắn route callback KHÔNG cần auth
- app.use('/payment', paymentRoute);
- app.use('/pay', payRoutes);
+  app.use('/payment', paymentRoute);
+  app.use('/pay', payRoutes);
   app.use('/notification', authMiddleware.requireAuth, notificationRoutes)
   app.use('/message', authMiddleware.requireAuth, messageRoutes)
 }
