@@ -130,10 +130,6 @@ module.exports.payPost = async (req, res) => {
 
 // // [GET] /user/profile
 module.exports.profile = async (req, res) => {
-  // res.render("client/pages/user/profile", {
-  //   pageTitle: "Trang cá nhân",
-  //   user: res.locals.user
-  // });
   res.json(res.locals.user);
 };
 
@@ -235,13 +231,10 @@ module.exports.addComment = async (req, res) => {
       }
     );
 
-    const course = await Course.findOne({ _id: req.params.CourseID });
-    req.flash("success", "Thanh toán thành công");
-    res.redirect(`/courses/detail/${course.CourseSlug}`);
-  } else {
-    res.render("client/pages/auth/login", {
-      pageTitle: "Đăng nhập",
-    });
+    res.json({
+      code: 200,
+      message: "Thêm đánh giá thành công!"
+    })
   }
 };
 
@@ -403,7 +396,7 @@ module.exports.markVideoAsCompleted = async (req, res) => {
 };
 
 module.exports.getVideoStatus = async (req, res) => {
-  const userId   = res.locals.user._id;
+  const userId = res.locals.user._id;
   const { courseId } = req.params;
   try {
     // Load user + tìm subdoc course
@@ -438,8 +431,8 @@ module.exports.getVideoStatus = async (req, res) => {
 
       // load tất cả video của lesson
       const videos = await Video.find({ LessonId: lesson._id })
-                                .select("_id title url")
-                                .lean();
+        .select("_id title url")
+        .lean();
 
       // xác định seenIDs khi LessonStatus=0
       const seenIDs = prog.LessonStatus === 0 && Array.isArray(prog.LessonProcess)
@@ -456,22 +449,22 @@ module.exports.getVideoStatus = async (req, res) => {
           completed = seenIDs.includes(vid);
         }
         return {
-          videoId:   vid,
-          title:     v.title,
-          url:       v.url,
+          videoId: vid,
+          title: v.title,
+          url: v.url,
           completed
         };
       });
 
-      const totalVideos    = videos.length;
+      const totalVideos = videos.length;
       const completedCount = videoStatuses.filter(v => v.completed).length;
-      const lessonStatus   = courseStatus === 1 ? 1 : prog.LessonStatus;
+      const lessonStatus = courseStatus === 1 ? 1 : prog.LessonStatus;
       const completionRate = totalVideos > 0
         ? completedCount / totalVideos
         : 0;
 
       return {
-        lessonId:       thisLessonId,
+        lessonId: thisLessonId,
         lessonStatus,
         totalVideos,
         completedCount,
@@ -491,7 +484,7 @@ module.exports.getVideoStatus = async (req, res) => {
     console.error("getVideoStatus error:", error);
     return res.status(500).json({
       message: "Lỗi khi lấy trạng thái video",
-      error:   error.message
+      error: error.message
     });
   }
 };

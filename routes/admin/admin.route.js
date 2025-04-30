@@ -14,17 +14,14 @@ router.get('/', controller.index)
 router.get('/history', historyController.getAdminHistory)
 
 router.get('/detail/:AdminID', controller.detail)
+
 router.get('/detail/:AdminID/history', historyController.getAdminHistoryByAdminID)
 
 router.get('/create', controller.createItem)
 
 router.post('/create', upload.single('AdminAvatar'), uploadCloud.upload, controller.createPost)
 
-// router.patch('/change-status/:status/:AdminID', controller.changeStatus)
-
 router.delete('/delete/:AdminID', controller.deleteItem)
-
-router.get('/edit/:AdminID', controller.editItem)
 
 router.post(
   '/edit/:AdminID',

@@ -3,7 +3,7 @@ const slug = require("mongoose-slug-updater");
 mongoose.plugin(slug);
 
 const courseSchema = new mongoose.Schema({
-  CourseIntructor: String,
+  CourseIntructor: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
   CourseName: String,
   CourseSlug: {
     type: String,

@@ -94,24 +94,18 @@ module.exports.handleCallback = async (req, res) => {
 
 // // [GET] /admin/pay/
 module.exports.pay = async (req, res) => {
-  const pays = await Pay.find().lean().sort({
-    "createdBy.createdAt": -1
-  }).select("UserId CourseId PayProfit PayStatus PayTotal createdBy orderId");
-  for (const pay of pays) {
-    const user = await User.findOne({
-      _id: pay.UserId,
-    }).select("UserFullName");
-    if (user) {
-      pay.userName = user.UserFullName;
-    }
-
-    const course = await Course.findOne({
-      _id: pay.CourseId,
-    }).select("CourseName");
-    if (course) {
-      pay.courseName = course.CourseName;
-    }
-  }
+  const pays = await Pay.find()
+    .sort({ "createdBy.createdAt": -1 })
+    .select("UserId CourseId PayProfit PayStatus PayTotal createdBy orderId")
+    .populate({
+      path: "UserId",
+      select: "UserFullName"
+    })
+    .populate({
+      path: "CourseId",
+      select: "CourseName"
+    })
+    .lean();
   res.json(pays)
 };
 

@@ -38,13 +38,6 @@ module.exports.index = async (req, res) => {
   }
 };
 
-// [GET] /admin/my-account/edit
-module.exports.editItem = async (req, res) => {
-  res.render("admin/pages/my-account/edit", {
-    pageTitle: "Chỉnh sửa trang cá nhân",
-  });
-};
-
 // [POST] /admin/my-account/edit
 module.exports.editPost = async (req, res) => {
   try {
