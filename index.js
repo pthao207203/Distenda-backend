@@ -15,6 +15,8 @@ const systemConfig = require("./config/system");
 
 const routeAdmin = require("./routes/admin/index.route");
 const routeClient = require("./routes/client/index.route");
+const payRoute = require("./routes/client/pay.route");
+const paymentRoute = require("./routes/client/payment.route");
 
 const database = require("./config/database");
 database.connect();
