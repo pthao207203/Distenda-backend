@@ -18,6 +18,11 @@ const voucherSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  courseId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Course",
+  required: true
+},
   validityPeriod: {
     type: Number, // Representing validity in currency or days
     required: true,
