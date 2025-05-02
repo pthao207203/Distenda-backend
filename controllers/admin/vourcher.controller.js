@@ -53,6 +53,12 @@ module.exports.detail = async (req, res) => {
   }
 };
 
+// [GET] /admin/voucher/create
+module.exports.createItem = async (req, res) => {
+  const course = await Course.find({ CourseDeleted: 1 });
+  res.json(course);
+};
+
 // [POST] /admin/voucher/create
 module.exports.createPost = async (req, res) => {
   try {
@@ -61,7 +67,9 @@ module.exports.createPost = async (req, res) => {
     };
     req.body.discountPercentage = parseInt(req.body.discountPercentage);
     req.body.discountAmount = parseInt(req.body.discountAmount);
-    req.body.validityPeriod = req.body.validityPeriod ? parseInt(req.body.validityPeriod) : 30;
+    req.body.validityPeriod = req.body.validityPeriod
+      ? parseInt(req.body.validityPeriod)
+      : 30;
 
     const voucher = new Voucher(req.body);
     await voucher.save();
@@ -69,7 +77,7 @@ module.exports.createPost = async (req, res) => {
     res.json({
       code: 200,
       message: "Tạo voucher thành công!",
-      voucher, // 👈 trả về luôn _id để frontend sử dụng
+      voucher, // trả về luôn _id để frontend sử dụng
     });
   } catch (err) {
     console.error("Error creating voucher:", err);
@@ -158,7 +166,6 @@ module.exports.editPost = async (req, res) => {
     if (result.nModified === 0) {
       return res.status(404).json({ message: "Voucher không tồn tại" });
     }
-
     res.json({
       code: 200,
       message: "Cập nhật voucher thành công!",

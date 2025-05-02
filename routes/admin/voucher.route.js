@@ -9,7 +9,7 @@ router.get('/', controller.index);
 router.get('/detail/:VoucherID', controller.detail);
 
 // Route để hiển thị form tạo voucher (GET)
-// router.get('/create', controller.createItem);
+router.get('/create', controller.createItem)
 
 // Route để tạo mới voucher (POST)
 router.post('/create', controller.createPost);
