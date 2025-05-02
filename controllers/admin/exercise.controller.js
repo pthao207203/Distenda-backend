@@ -87,6 +87,7 @@ module.exports.detailItem = async (req, res) => {
       ExerciseQuestion: "",
       ExerciseSample: "",
       ExerciseAnswer: "",
+      ExerciseTestcase: [],
     };
     res.json(lesson)
 
