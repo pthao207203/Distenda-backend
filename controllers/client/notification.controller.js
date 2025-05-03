@@ -96,7 +96,7 @@ module.exports.checkCourseExpiry = async (req, res) => {
 
       // Nếu đã hoàn thành, chỉ gửi thông báo hoàn thành nếu chưa gửi
       if (userCourse.CourseStatus === 1) {
-        const completeMsg = `Chúc mừng bạn đã hoàn thành khóa học "${course.CourseName}"!`;
+        const completeMsg = `Chúc mừng bạn đã hoàn thành khóa học "${course.CourseName}"! Hãy vào lại khóa học để lấy chứng chỉ nhé.`;
 
         const existedComplete = await Notification.findOne({
           UserId: user._id,
@@ -112,6 +112,7 @@ module.exports.checkCourseExpiry = async (req, res) => {
             NotificationStatus: 1,
             NotificationDeleted: 1,
             UserId: user._id,
+            NotificationLink: `/courses/CoursePurchased/${course.CourseSlug}`,
             createdBy: { UserId: user._id, createdAt: today },
           });
           console.log(`🏁 Đã gửi thông báo hoàn thành cho "${course.CourseName}"`);

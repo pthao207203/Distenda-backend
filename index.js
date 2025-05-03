@@ -85,15 +85,32 @@ const io = require('socket.io')(app.listen(port, () => {
 
 // Socket.IO events
 io.on('connection', (socket) => {
-  console.log('🔌 Client connected: ' + socket.id);
+  const { userId, role } = socket.handshake.query;
+  console.log("New connection query:", socket.handshake.query);
+  if (userId) {
+    socket.join(userId); // 👉 đây là điều kiện BẮT BUỘC
+    console.log(`🔌 ${role} ${userId} đã kết nối socket!`);
+  }
+  
 
-  socket.on('sendMessage', (data) => {
-    console.log('📩 Message từ client:', data);
-    io.emit('receiveMessage', data);   // Broadcast cho tất cả client
+  if (!userId || !role) {
+    console.warn("❌ Missing userId or role. Query received:", socket.handshake.query);
+    socket.disconnect(true);
+    return;
+  }
+
+  const roomName = `${role}_${userId}`;
+  socket.join(roomName);
+  io.in(roomName).fetchSockets().then(sockets => {
+    console.log(`📦 Room ${roomName} has ${sockets.length} socket(s)`);
   });
+  console.log(`✅ ${role} ${userId} joined room ${roomName}`);
+  socket.on('sendMessage', (data) => {
+    const { receiverId, receiverRole } = data;
+    const targetRoom = `${receiverRole}_${receiverId}`;
+    console.log(`📨 Gửi đến phòng ${targetRoom}:`, data);
 
-  socket.on('disconnect', () => {
-    console.log('❌ Client disconnected: ' + socket.id);
+    io.to(targetRoom).emit("receiveMessage", data);
   });
 });
 

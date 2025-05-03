@@ -26,6 +26,8 @@ router.delete('/delete/:AdminID', controller.deleteItem)
 
 router.get('/edit/:AdminID', controller.editItem)
 
+router.get('/me', controller.getCurrentAdmin);
+
 router.post(
   '/edit/:AdminID',
   // upload.single('AdminAvatar'),
