@@ -42,6 +42,9 @@ module.exports.index = async (req, res) => {
 
 // [GET] /admin/admin/detail/:AdminID
 module.exports.detail = async (req, res) => {
+  let find = {
+    AdminDeleted: 1,
+  };
   const admin = await Admin.findOne(find)
     .select("-AdminPassword -AdminToken")
     .populate({
