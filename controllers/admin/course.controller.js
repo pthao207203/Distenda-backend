@@ -160,11 +160,6 @@ module.exports.detailItem = async (req, res) => {
 
     const course = await Course.findOne(find)
       .populate({
-        path: "CourseCatogory",
-        match: { CategoryDeleted: 1 },
-        model: "Category"
-      })
-      .populate({
         path: "CourseIntructor",
         match: { AdminDeleted: 1 },
         model: "Admin"
@@ -185,10 +180,6 @@ module.exports.detailItem = async (req, res) => {
     course.intructors = intructors;
     course.lesson = lessons.length > 0 ? lessons : [];
 
-    course.category = course.CourseCatogory || null;
-    course.intructor = course.CourseIntructor || null;
-    delete course.CourseCatogory;
-    delete course.CourseIntructor;
     res.json({ course: course, user: res.locals.user._id });
   } catch (error) {
     console.log(error);
