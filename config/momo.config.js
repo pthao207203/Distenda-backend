@@ -1,13 +1,12 @@
 module.exports = {
-    partnerCode: "MOMOFT3W20250415",
-    accessKey: "HxsS9vtjNApgNU28",
-    secretKey: process.env.MOMO_SECRET,
-    redirectUrl: "http://localhost:3000/courses/handle-payment",
-    ipnUrl: "https://distenda.onrender.com/pay/dummy-callback",
-    requestType: "captureWallet",
-    extraData: "",
-    orderGroupId: "",
-    autoCapture: true,
-    lang: "vi"
-  };
-  
+  partnerCode: "MOMOFT3W20250415",
+  accessKey: "HxsS9vtjNApgNU28",
+  secretKey: process.env.MOMO_SECRET,
+  redirectUrl: "http://localhost:3000/courses/handle-payment",
+  ipnUrl: "https://distenda.onrender.com/pay/dummy-callback",
+  requestType: "captureWallet",
+  extraData: "",
+  orderGroupId: "",
+  autoCapture: true,
+  lang: "vi"
+};
