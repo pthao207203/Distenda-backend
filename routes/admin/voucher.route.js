@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../../controllers/admin/vourcher.controller");
+const historyController = require("../../controllers/admin/history.controller");
 
 // Route để lấy tất cả voucher
 router.get('/', controller.index);
@@ -22,5 +23,8 @@ router.get('/edit/:VoucherID', controller.editItem);
 
 // Route để chỉnh sửa voucher (POST)
 router.post('/edit/:VoucherID', controller.editPost);
+
+router.get('/history', historyController.getVoucherHistory);
+
 
 module.exports = router;
