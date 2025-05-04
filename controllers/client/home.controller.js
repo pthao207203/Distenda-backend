@@ -7,11 +7,6 @@ const createTreeHelper = require("../../helpers/createTree");
 
 // [GET] /
 module.exports.index = async (req, res) => {
-  const category = await Category.find({
-    CategoryDeleted: 1,
-  })
-  const allCategory = createTreeHelper.tree(category);
-
   const courses = await Course.find({
     CourseDeleted: 1,
     CourseStatus: 1
@@ -27,12 +22,6 @@ module.exports.index = async (req, res) => {
     courses: courses,
     intructor: intructor,
   })
-  // res.render('client/pages/home/index', {
-  //   pageTitle: "Trang chủ",
-  //   allCategory: allCategory,
-  //   courses: courses,
-  //   intructor: intructor
-  // });
 }
 
 // [GET] /header

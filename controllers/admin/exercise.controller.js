@@ -46,9 +46,6 @@ module.exports.editPost = async (req, res) => {
         }
       );
     } else {
-      // req.body.exercise.createdBy = {
-      //   UserId: res.locals.user.id,
-      // };
       console.log(req.body)
       const exer = new Exercise({
         ...req.body.exercise,
@@ -60,21 +57,13 @@ module.exports.editPost = async (req, res) => {
       code: 200,
       message: "Cập nhật thành công!"
     })
-    // req.flash("success", "Cập nhật thành công!");
   } catch (error) {
     console.log(error)
     res.json({
       code: 400,
       message: "Cập nhật thất bại!"
     })
-    // req.flash("error", "Cập nhật thất bại!");
   }
-  // const find = {
-  //   ExerciseDeleted: 1,
-  //   _id: req.params.ExerciseID,
-  // };
-  // const exer = await Exercise.findOne(find);
-  // res.redirect(`${systemConfig.prefixAdmin}/lesson/detail/${exer.LessonId}`);
 };
 
 // [GET] /admin/exercise/detail/:LessonID
@@ -98,6 +87,7 @@ module.exports.detailItem = async (req, res) => {
       ExerciseQuestion: "",
       ExerciseSample: "",
       ExerciseAnswer: "",
+      ExerciseTestcase: [],
     };
     res.json(lesson)
 

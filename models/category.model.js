@@ -5,8 +5,9 @@ mongoose.plugin(slug);
 const categorySchema = new mongoose.Schema({
   CategoryName: String,
   CategoryParent_id: {
-    type: String,
-    default: "",
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
   },
   CategorySlug: {
     type: String,

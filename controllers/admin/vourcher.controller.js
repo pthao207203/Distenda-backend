@@ -1,26 +1,16 @@
+const mongoose = require("mongoose");
 const Voucher = require("../../models/voucher.model");
 const Course = require("../../models/course.model");
-const systemConfig = require("../../config/system");
 
 // [GET] /admin/voucher
 module.exports.index = async (req, res) => {
   try {
-    const vouchers = await Voucher.find().lean();
-
-    // Gắn thêm thông tin course cho mỗi voucher
-    const result = await Promise.all(
-      vouchers.map(async (item) => {
-        const course = await Course.findOne({
-          _id: item.VoucherCourse,
-          CourseDeleted: 1,
-        }).lean();
-        return { ...item, course };
-      })
-    );
-
-    res.json(result);
+    const vouchers = await Voucher.find()
+      .populate("courseIds", "CourseName")
+      .lean();
+    res.json(vouchers);
   } catch (err) {
-    console.error("Error fetching vouchers:", err);
+    console.error("Lỗi khi lấy danh sách voucher:", err);
     res.status(500).json({
       message: "Lỗi khi lấy danh sách voucher",
       error: err.message,
@@ -31,21 +21,17 @@ module.exports.index = async (req, res) => {
 // [GET] /admin/voucher/detail/:VoucherID
 module.exports.detail = async (req, res) => {
   try {
-    const voucher = await Voucher.findOne({
-      // VoucherDeleted: 1,
-      _id: req.params.VoucherID,
-    }).lean();
+    const voucher = await Voucher.findById(req.params.VoucherID)
+      .populate("courseIds", "CourseName")
+      .lean();
 
     if (!voucher) {
       return res.status(404).json({ message: "Voucher không tồn tại" });
     }
 
-    const course = await Course.findOne({ _id: voucher.VoucherCourse }).lean();
-    voucher.course = course;
-
     res.json(voucher);
   } catch (err) {
-    console.error("Error fetching voucher details:", err);
+    console.error("Lỗi khi lấy chi tiết voucher:", err);
     res.status(500).json({
       message: "Lỗi khi lấy chi tiết voucher",
       error: err.message,
@@ -53,15 +39,34 @@ module.exports.detail = async (req, res) => {
   }
 };
 
+// [GET] /admin/voucher/create
+module.exports.createItem = async (req, res) => {
+  const course = await Course.find({ CourseDeleted: 1 }).lean();
+  res.json(course);
+};
+
 // [POST] /admin/voucher/create
 module.exports.createPost = async (req, res) => {
   try {
+    // Ép kiểu ObjectId chính xác và an toàn
+    if (Array.isArray(req.body.courseIds)) {
+      req.body.courseIds = req.body.courseIds.map(id => {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          return new mongoose.Types.ObjectId(id);
+        }
+        throw new Error("Invalid courseId");
+      });
+    }    
+
     req.body.createdBy = {
-      UserId: res.locals?.user?.id || "admin123",
+      userId: res.locals?.user?.id || "admin123",
+      createdAt: new Date(),
     };
+
     req.body.discountPercentage = parseInt(req.body.discountPercentage);
     req.body.discountAmount = parseInt(req.body.discountAmount);
-    req.body.validityPeriod = req.body.validityPeriod ? parseInt(req.body.validityPeriod) : 30;
+    req.body.minAmount = parseInt(req.body.minAmount);
+    req.body.validityPeriod = parseInt(req.body.validityPeriod || 30);
 
     const voucher = new Voucher(req.body);
     await voucher.save();
@@ -69,7 +74,7 @@ module.exports.createPost = async (req, res) => {
     res.json({
       code: 200,
       message: "Tạo voucher thành công!",
-      voucher, // 👈 trả về luôn _id để frontend sử dụng
+      voucher,
     });
   } catch (err) {
     console.error("Error creating voucher:", err);
@@ -80,6 +85,7 @@ module.exports.createPost = async (req, res) => {
   }
 };
 
+
 // [DELETE] /admin/voucher/delete/:VoucherID
 module.exports.deleteItem = async (req, res) => {
   try {
@@ -88,20 +94,17 @@ module.exports.deleteItem = async (req, res) => {
       {
         VoucherDeleted: 0,
         deletedBy: {
-          UserId: res.locals.user.id,
+          userId: res.locals.user.id,
           deletedAt: new Date(),
         },
       }
     );
 
-    if (result.nModified === 0) {
+    if (result.modifiedCount === 0) {
       return res.status(404).json({ message: "Voucher không tồn tại" });
     }
 
-    res.json({
-      code: 200,
-      message: "Xoá voucher thành công!",
-    });
+    res.json({ code: 200, message: "Xoá voucher thành công!" });
   } catch (err) {
     console.error("Error deleting voucher:", err);
     res.status(500).json({
@@ -117,7 +120,9 @@ module.exports.editItem = async (req, res) => {
     const voucher = await Voucher.findOne({
       VoucherDeleted: 1,
       _id: req.params.VoucherID,
-    }).lean();
+    })
+      .populate("courseIds", "CourseName")
+      .lean();
 
     if (!voucher) {
       return res.status(404).json({ message: "Voucher không tồn tại" });
@@ -128,7 +133,7 @@ module.exports.editItem = async (req, res) => {
 
     res.json(voucher);
   } catch (err) {
-    console.error("Error fetching voucher for edit:", err);
+    console.error("Lỗi khi lấy voucher để chỉnh sửa:", err);
     res.status(500).json({
       message: "Lỗi khi lấy voucher để chỉnh sửa",
       error: err.message,
@@ -137,37 +142,46 @@ module.exports.editItem = async (req, res) => {
 };
 
 // [POST] /admin/voucher/edit/:VoucherID
+// [POST] /admin/voucher/edit/:VoucherID
 module.exports.editPost = async (req, res) => {
   try {
+    if (Array.isArray(req.body.courseIds)) {
+      req.body.courseIds = req.body.courseIds.map(id => {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          return new mongoose.Types.ObjectId(id);
+        } else {
+          throw new Error(`ID không hợp lệ: ${id}`);
+        }
+      });
+    } else {
+      req.body.courseIds = [];
+    }
+
     const { editedBy, ...updateFields } = req.body;
     const newEditedBy = {
-      UserId: res.locals.user.id,
-      editedAt: new Date(),
+      userId: res.locals.user?.id || "admin123",
+      updatedAt: new Date(),
     };
 
     const result = await Voucher.updateOne(
       { _id: req.params.VoucherID },
       {
         ...updateFields,
-        $push: {
-          editedBy: newEditedBy,
-        },
+        $push: { updatedBy: newEditedBy },
       }
     );
 
-    if (result.nModified === 0) {
+    if (result.modifiedCount === 0) {
       return res.status(404).json({ message: "Voucher không tồn tại" });
     }
 
-    res.json({
-      code: 200,
-      message: "Cập nhật voucher thành công!",
-    });
+    res.json({ code: 200, message: "Cập nhật voucher thành công!" });
   } catch (err) {
-    console.error("Error updating voucher:", err);
+    console.error("Lỗi khi cập nhật voucher:", err);
     res.status(500).json({
       message: "Lỗi khi cập nhật voucher",
       error: err.message,
     });
   }
 };
+

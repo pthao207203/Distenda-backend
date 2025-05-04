@@ -3,28 +3,6 @@ const Category = require("../../models/category.model")
 const Admin = require("../../models/admin.model")
 const createTreeHelper = require("../../helpers/createTree");
 
-
-// // [GET] /courses
-// module.exports.index = async (req, res) => {
-//   const courses = await Course.find({
-//     CourseDeleted: 1,
-//     CourseStatus: 1
-//   });
-
-//   const category = await Category.find({
-//     CategoryDeleted: 1,
-//   })
-//   const newCategory = createTreeHelper.tree(category);
-
-//   //console.log(courses);
-
-//   res.render('client/pages/courses/index', {
-//     pageTitle: "Danh sách khoá học",
-//     courses: courses,
-//     allCategory: newCategory,
-//   })
-// }
-
 // [GET] /category/:CategorySlug
 module.exports.detail = async (req, res) => {
   try {
@@ -55,27 +33,27 @@ module.exports.detail = async (req, res) => {
       CourseCatogory: { $in: [category.id, ...listSubId] },
       CourseStatus: 1,
       CourseDeleted: 1
-    }).lean();
+    })
+      .populate({
+        path: "CourseIntructor",
+        select: "AdminFullName", // chỉ lấy tên giảng viên
+        model: "Admin"
+      })
+      .lean();
 
-    for (const course of courses) {
-      const intructor = await Admin.findOne({ _id: course.CourseIntructor });
-      course.intructor = intructor.AdminFullName
-    }
+    const result = courses.map(course => ({
+      ...course,
+      intructor: course.CourseIntructor?.AdminFullName || "Không rõ"
+    }));
 
     res.json({
-      courses: courses,
+      courses: result,
       category: category.CategoryName
     })
-    // res.render('client/pages/courses/index', {
-    //   courses: courses,
-    //   allCategory: allCategory,
-    // });
   } catch (error) {
-    req.flash("error", "Không tìm thấy danh mục!")
-    // res.redirect(`/courses`)
     res.json({
       code: 404,
-      message: "Không tìm thấy danh mục!"
+      message: error
     })
   }
 }

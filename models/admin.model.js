@@ -9,7 +9,7 @@ const adminSchema = new mongoose.Schema({
   AdminAvatar: String,
   AdminLevel: String,
   AdminExp: String,
-  AdminRole_id: String,
+  AdminRole_id: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
   AdminStatus: Number,
   AdminSalary: Number,
   AdminDeleted: {

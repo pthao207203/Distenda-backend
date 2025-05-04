@@ -80,14 +80,21 @@ module.exports.detailItem = async (req, res) => {
       _id: req.params.VideoID,
     };
 
-    const video = await Video.findOne(find).lean();
+    const video = await Video.findOne(find)
+      .populate({
+        path: "LessonId",
+        match: { LessonDeleted: 1 }, // chỉ populate nếu LessonDeleted = 1
+        model: "Lesson",
+      })
+      .lean();
 
-    const lesson = await Lesson.findOne({
-      _id: video.LessonId,
-      LessonDeleted: 1,
-    });
-    video.lesson = lesson;
-    res.json(video)
+    if (!video) {
+      return res.status(404).json({ message: "Không tìm thấy video" });
+    }
+
+    // Gắn lại lesson cho dễ dùng nếu muốn
+    video.lesson = video.LessonId;
+    res.json(video);
   } catch (error) {
     console.log(error)
     res.json({

@@ -9,15 +9,18 @@ const Setting = require("../../models/setting.model")
 
 // [GET] /admin/dashboard
 module.exports.dashboard = async (req, res) => {
-  const courses = await Course.find().limit(4).lean()
-  for (const course of courses) {
-    const category = await Category.findOne({
-      _id: course.CourseCatogory,
-    });
+  const courses = await Course.find()
+    .limit(4)
+    .populate({
+      path: "CourseCatogory",
+      select: "CategoryName", // Chỉ lấy tên category
+      model: "Category"
+    })
+    .lean();
 
-    if (category) {
-      course.CategoryName = category.CategoryName;
-    }
+  for (const course of courses) {
+    course.CategoryName = course.CourseCatogory?.CategoryName || null;
+    delete course.CourseCatogory; // Tùy chọn nếu không muốn gửi field gốc
   }
 
   const now = new Date();
@@ -88,12 +91,21 @@ module.exports.dashboard = async (req, res) => {
   ];
 
   // Lấy toàn bộ giao dịch
-  const pays = await Pay.find({ PayStatus: 1 }).lean(); // Nếu cần chỉ lấy giao dịch thành công
+  const pays = await Pay.find({ PayStatus: 1 })
+    .populate({
+      path: "UserId",
+      select: "UserFullName",
+      model: "User",
+    })
+    .populate({
+      path: "CourseId",
+      select: "CourseName",
+      model: "Course",
+    })
+    .lean();
 
-  // Khởi tạo bộ đếm cho từng phân khúc
   const rangeCounts = priceRanges.map(() => 0);
 
-  // Lặp qua từng giao dịch và phân loại vào nhóm phù hợp
   pays.forEach(pay => {
     const total = pay.PayTotal;
     for (let i = 0; i < priceRanges.length; i++) {
@@ -235,22 +247,9 @@ module.exports.dashboard = async (req, res) => {
 // [GET] /admin/dashboard/header
 module.exports.header = async (req, res) => {
   const setting = await Setting.findOne({}).lean()
-  setting.user = res.locals.user
-
-  if (mongoose.Types.ObjectId.isValid(setting.user.AdminRole_id)) {
-    const role = await Role.findOne({
-      _id: setting.user.AdminRole_id,
-      RoleDeleted: 1, // Đảm bảo chỉ lấy role chưa bị xóa
-    }).lean();
-
-    setting.role = role ? role : null;
-  } else {
-    setting.role = null;
-  }
 
   res.json({
     setting: setting,
-    role: setting.role,
   })
 };
 

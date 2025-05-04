@@ -1,5 +1,5 @@
 const express = require("express")
-const multer  = require('multer')
+const multer = require('multer')
 const router = express.Router()
 
 const upload = multer()
@@ -10,21 +10,10 @@ const uploadCloud = require("../../middlewares/admin/uploadCloud.middleware")
 
 router.get('/', controller.index)
 
-router.get('/create', controller.createItem)
-
-router.post('/create', upload.single('CategoryPicture'), uploadCloud.upload, validate.createPost, controller.createPost)
-
-router.patch('/change-status/:status/:CategoryID', controller.changeStatus)
+router.post('/create', controller.createPost)
 
 router.delete('/delete/:CategoryID', controller.deleteItem)
 
-router.get('/edit/:CategoryID', controller.editItem)
-
-router.patch(
-  '/edit/:CategoryID', 
-  upload.single('CategoryPicture'), 
-  uploadCloud.upload, 
-  validate.createPost, 
-  controller.editPatch)
+router.patch('/edit/:CategoryID', controller.editPatch)
 
 module.exports = router;

@@ -4,7 +4,7 @@ mongoose.plugin(slug);
 
 const bannerSchema = new mongoose.Schema({
   BannerName: String,
-  BannerCourse: String,
+  BannerCourse: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
   BannerDescription: String,
   BannerPicture: String,
   BannerStatus: {

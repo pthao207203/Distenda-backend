@@ -24,52 +24,53 @@ module.exports.index = async (req, res) => {
     AdminDeleted: 1,
   };
 
-  const admin = await Admin.find(find).select("-AdminPassword -AdminToken").lean();
+  const admin = await Admin.find(find)
+    .select("-AdminPassword -AdminToken")
+    .populate({
+      path: "AdminRole_id",
+      match: { RoleDeleted: 1 },
+      model: "Role"
+    })
+    .lean();
 
   for (const item of admin) {
-    if (mongoose.Types.ObjectId.isValid(item.AdminRole_id)) {
-      const role = await Role.findOne({
-        _id: item.AdminRole_id,
-        RoleDeleted: 1,
-      });
-      item.role = role;
-    } else {
-      item.role = null; // Hoặc xử lý lỗi phù hợp
-    }
+    item.role = item.AdminRole_id || null;
+    delete item.AdminRole_id;
   }
   res.json(admin)
 };
 
 // [GET] /admin/admin/detail/:AdminID
 module.exports.detail = async (req, res) => {
-  const find = {
-    AdminDeleted: 1,
-    AdminStatus: 1,
-    _id: req.params.AdminID,
-  };
+  const admin = await Admin.findOne(find)
+    .select("-AdminPassword -AdminToken")
+    .populate({
+      path: "AdminRole_id",
+      match: { RoleDeleted: 1 },
+      model: "Role"
+    })
+    .lean();
 
-  const admin = await Admin.findOne(find).lean();
   if (!admin) {
-    res.json({
+    return res.json({
       code: 400,
       message: "Không tìm thấy người dùng!"
-    })
-    return;
+    });
   }
+
+  // Gán role 
+  admin.role = admin.AdminRole_id || null;
+  delete admin.AdminRole_id;
+
+  // Tìm course dạy bởi admin
   const course = await Course.find({
     CourseIntructor: admin._id
-  })
-  admin.course = course
+  }).lean();
+  admin.course = course;
 
-  const role = await Role.findOne({
-    _id: admin.AdminRole_id,
-    RoleDeleted: 1,
-  });
-  admin.role = role ? role : null;
-  const roles = await Role.find({
-    RoleDeleted: 1,
-  })
-  admin.roles = roles ? roles : null;
+  // Lấy danh sách roles còn hoạt động
+  const roles = await Role.find({ RoleDeleted: 1 }).lean();
+  admin.roles = roles;
   res.json(admin)
 };
 
@@ -106,18 +107,6 @@ module.exports.createPost = async (req, res) => {
   })
 };
 
-// // [PATCH] /admin/admin/change-status/:status/:AdminID
-// module.exports.changeStatus = async (req, res) => {
-//   const status = req.params.status;
-//   const CategoryID = req.params.CategoryID;
-
-//   await Category.updateOne({ _id: CategoryID}, {CategoryStatus: status == "active"?1:0})
-
-//   req.flash('success', 'Cập nhật trạng thái thành công');
-
-//   res.redirect('back')
-// }
-
 // [DELETE] /admin/admin/delete/:AdminID
 module.exports.deleteItem = async (req, res) => {
   const AdminID = req.params.AdminID;
@@ -136,31 +125,6 @@ module.exports.deleteItem = async (req, res) => {
     code: 200,
     message: "Xoá thành công!"
   })
-};
-
-// [GET] /admin/admin/edit/:AdminID
-module.exports.editItem = async (req, res) => {
-  try {
-    const find = {
-      AdminDeleted: 1,
-      _id: req.params.AdminID,
-    };
-
-    const listRole = await Role.find({
-      RoleDeleted: 1,
-    });
-
-    const admin = await Admin.findOne(find);
-
-    res.render("admin/pages/admin/edit", {
-      pageTitle: "Chỉnh sửa khoá học",
-      admin: admin,
-      listRole: listRole,
-    });
-  } catch (error) {
-    req.flash("error", "Không tìm thấy tài khoản!");
-    res.redirect(`${systemConfig.prefixAdmin}/admin`);
-  }
 };
 
 // [POST] /admin/admin/edit/:AdminID
