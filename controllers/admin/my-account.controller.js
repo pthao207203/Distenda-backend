@@ -38,13 +38,6 @@ module.exports.index = async (req, res) => {
   }
 };
 
-// [GET] /admin/my-account/edit
-module.exports.editItem = async (req, res) => {
-  res.render("admin/pages/my-account/edit", {
-    pageTitle: "Chỉnh sửa trang cá nhân",
-  });
-};
-
 // [POST] /admin/my-account/edit
 module.exports.editPost = async (req, res) => {
   try {
@@ -75,25 +68,4 @@ module.exports.editPost = async (req, res) => {
       message: "Cập nhật thất bại!"
     })
   }
-  // res.redirect(`${systemConfig.prefixAdmin}/my-account`);
 };
-
-// // [DELETE] /admin/my-account/delete/:VideoID
-// module.exports.deleteItem = async (req, res) => {
-//   const videoID = req.params.VideoID;
-
-//   await Lesson.updateOne(
-//     { _id: videoID },
-//     {
-//       VideoDeleted: 0,
-//       deletedBy: {
-//         UserId: res.locals.user.id,
-//         deletedAt: new Date(),
-//       },
-//     }
-//   );
-
-//   req.flash("success", "Xóa thành công!");
-//   res.redirect("back");
-// };
-

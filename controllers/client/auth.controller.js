@@ -86,6 +86,8 @@ module.exports.loginFacebook = async (req, res) => {
 
     res.cookie("user_token", user.UserToken, {
       secure: true,
+      httpOnly: false,
+      sameSite: 'None',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -176,7 +178,12 @@ module.exports.loginPost = async (req, res) => {
 
 // [GET] /auth/logout
 module.exports.logout = (req, res) => {
-  res.clearCookie("user_token");
+  res.clearCookie("user_token", {
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+  });
+
   // res.redirect(`/auth/login`);
   res.json({
     code: 200,

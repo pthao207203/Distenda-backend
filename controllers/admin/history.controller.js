@@ -3,6 +3,7 @@ const Course = require("../../models/course.model");
 const Lesson = require("../../models/lesson.model");
 const Video = require("../../models/video.model");
 const Banner = require("../../models/banner.model");
+const Voucher = require("../../models/voucher.model");
 const mongoose = require('mongoose');
 
 // [GET] /admin/courses/history
@@ -606,3 +607,153 @@ module.exports.getBannerHistoryByBannerID = async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error: err.message });
   }
 };
+
+// [GET] /admin/voucher/history
+module.exports.getVoucherHistory = async (req, res) => {
+  try {
+    const vouchers = await Voucher.find({}).lean();
+    const logs = [];
+
+    for (const voucher of vouchers) {
+      const voucherName = voucher.voucherCode;
+      const voucherId = voucher._id;
+
+      // THÊM
+      if (voucher.createdBy) {
+        logs.push({
+          action: "create",
+          VoucherId: voucherId,
+          voucherCode: voucherName,
+          userId: voucher.createdBy.userId,
+          timestamp: voucher.createdBy.createdAt,
+        });
+      }
+
+      // SỬA
+      if (Array.isArray(voucher.updatedBy)) {
+        for (const edit of voucher.updatedBy) {
+          logs.push({
+            action: "edit",
+            VoucherId: voucherId,
+            voucherCode: voucherName,
+            userId: edit.userId,
+            timestamp: edit.updatedAt,
+          });
+        }
+      }
+
+      // XÓA
+      if (voucher.deletedBy?.userId) {
+        logs.push({
+          action: "delete",
+          VoucherId: voucherId,
+          voucherCode: voucherName,
+          userId: voucher.deletedBy.userId,
+          timestamp: voucher.deletedBy.deletedAt,
+        });
+      }
+    }
+
+    // Lấy thông tin user
+    const userIds = [...new Set(logs.map(log => log.userId))];
+    const users = await Admin.find({ _id: { $in: userIds } }).lean();
+    const userMap = Object.fromEntries(users.map(u => [u._id.toString(), {
+      name: u.AdminFullName,
+      avatar: u.AdminAvatar,
+    }]));
+
+    // Gắn userName, userAvatar
+    const result = logs.map(log => ({
+      ...log,
+      userName: userMap[log.userId]?.name || "Không xác định",
+      userAvatar: userMap[log.userId]?.avatar || "/profile.svg",
+    }));
+
+    // Sort mới nhất trước
+    result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Lỗi getVoucherHistory:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
+
+// [GET] /admin/voucher/detail/:VoucherID/history
+module.exports.getVoucherHistoryByVoucherID = async (req, res) => {
+  try {
+    const { VoucherID } = req.params; 
+    const vouchers = await Voucher.find({ _id: new mongoose.Types.ObjectId(VoucherID) }).lean();
+
+    if (!vouchers || vouchers.length === 0) {
+      return res.status(404).json({ message: "Không tìm thấy lịch sử chương trong khóa học này" });
+    }
+
+    const logs = [];
+
+    // Lấy lịch sử của mỗi bài học
+    for (const voucher of vouchers) {
+      const voucherName = voucher.voucherCode;
+      const voucherId = voucher._id;
+
+      // THÊM
+      if (voucher.createdBy?.userId) {
+        logs.push({
+          action: "create",
+          VoucherId: voucherId,
+          voucherCode: voucherName,
+          userId: voucher.createdBy.userId,
+          timestamp: voucher.createdBy.createdAt,
+        });
+      }
+
+      // SỬA
+      if (Array.isArray(voucher.updatedBy)) {
+        for (const edit of voucher.updatedBy) {
+          logs.push({
+            action: "edit",
+            VoucherId: voucherId,
+            voucherCode: voucherName,
+            userId: edit.userId,
+            timestamp: edit.editedAt,
+          });
+        }
+      }
+
+      // XÓA
+      if (voucher.deletedBy?.userId) {
+        logs.push({
+          action: "delete",
+          VoucherId: voucherId,
+          voucherCode: voucherName,
+          userId: voucher.deletedBy.userId,
+          timestamp: voucher.deletedBy.deletedAt,
+        });
+      }
+    }
+
+    // Lấy thông tin người dùng
+    const userIds = [...new Set(logs.map(log => log.userId))];
+    const users = await Admin.find({ _id: { $in: userIds } }).lean();
+    const userMap = Object.fromEntries(users.map(u => [u._id.toString(), {
+      name: u.AdminFullName,
+      avatar: u.AdminAvatar,
+    }]));
+
+    // Gắn userName, userAvatar vào logs
+    const result = logs.map(log => ({
+      ...log,
+      userName: userMap[log.userId]?.name || "Không xác định",
+      userAvatar: userMap[log.userId]?.avatar || "/profile.svg",
+    }));
+
+    // Sắp xếp lịch sử từ mới nhất đến cũ nhất
+    result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json(result);
+  } catch (err) {
+    console.error("Lỗi getVoucherHistoryByVoucherID:", err);
+    res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
+

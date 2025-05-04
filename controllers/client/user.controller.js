@@ -130,10 +130,6 @@ module.exports.payPost = async (req, res) => {
 
 // // [GET] /user/profile
 module.exports.profile = async (req, res) => {
-  // res.render("client/pages/user/profile", {
-  //   pageTitle: "Trang cá nhân",
-  //   user: res.locals.user
-  // });
   res.json(res.locals.user);
 };
 
@@ -235,13 +231,10 @@ module.exports.addComment = async (req, res) => {
       }
     );
 
-    const course = await Course.findOne({ _id: req.params.CourseID });
-    req.flash("success", "Thanh toán thành công");
-    res.redirect(`/courses/detail/${course.CourseSlug}`);
-  } else {
-    res.render("client/pages/auth/login", {
-      pageTitle: "Đăng nhập",
-    });
+    res.json({
+      code: 200,
+      message: "Thêm đánh giá thành công!"
+    })
   }
 };
 
@@ -278,7 +271,7 @@ module.exports.markVideoAsCompleted = async (req, res) => {
     );
     if (!hasLesson) {
       await User.updateOne(
-        { _id: userId, "UserCourse.CourseId": courseId },
+        { _id: userId, "UserCourse.CourseId": courseId, "UserCourse.CourseStatus": { $ne: 1 } },
         {
           $push: {
             "UserCourse.$.CourseProcess": {
@@ -295,6 +288,7 @@ module.exports.markVideoAsCompleted = async (req, res) => {
         {
           _id: userId,
           "UserCourse.CourseId": courseId,
+          "UserCourse.CourseStatus": { $ne: 1 },
           "UserCourse.CourseProcess": {
             $elemMatch: {
               LessonId: lessonId,
@@ -371,9 +365,6 @@ module.exports.markVideoAsCompleted = async (req, res) => {
     ]);
 
     const doneLessons = courseStats?.doneLessons || 0;
-
-    console.log("doneLessons", doneLessons);
-    console.log("totalLessons", totalLessons);
     // Khi tất cả lesson done: mark CourseStatus = 1 và clear LessonProcess
     if (doneLessons > 0 && doneLessons === totalLessons) {
       await User.updateOne(
@@ -402,57 +393,97 @@ module.exports.markVideoAsCompleted = async (req, res) => {
   }
 };
 
-// [GET] /user/video-status/:courseId
 module.exports.getVideoStatus = async (req, res) => {
+  const userId = res.locals.user._id;
   const { courseId } = req.params;
-  const userId = res.locals.user._id; // Lấy userId từ `res.locals.user`
-
   try {
-    const user = await User.findById(userId); // Tìm người dùng
-
+    // Load user + tìm subdoc course
+    const user = await User.findById(userId).lean();
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User không tồn tại" });
     }
-
-    // Tìm khóa học trong UserCourse
-    const userCourse = user.UserCourse.find(c => c.CourseId.toString() === courseId);
+    const userCourse = user.UserCourse.find(
+      c => c.CourseId.toString() === courseId
+    );
     if (!userCourse) {
-      return res.status(404).json({ message: "Course not found" });
+      return res.status(404).json({ message: "User chưa đăng ký khóa này" });
     }
 
-    // Nếu CourseStatus = 1, tất cả video đều đã hoàn thành
-    if (userCourse.CourseStatus === 1) {
-      return res.status(200).json({ videoStatus: "completed" });
-    }
+    // Lấy tất cả lessons của khóa
+    const lessons = await Lesson.find({
+      CourseId: new mongoose.Types.ObjectId(courseId)
+    }).lean();
 
-    // Kiểm tra trạng thái của từng lesson và video trong khóa học
-    const videoStatuses = {};
+    // CourseStatus
+    const courseStatus = userCourse.CourseStatus === 1 ? 1 : 0;
 
-    for (const lesson of userCourse.CourseProcess) {
-      const totalVideosInLesson = await Video.countDocuments({
-        lessonId: lesson.LessonId,
+    // Với mỗi lesson, load videos và đánh dấu theo rule
+    const result = await Promise.all(lessons.map(async lesson => {
+      // chuyển id lesson về string
+      const thisLessonId = lesson._id.toString();
+
+      // progress cụ thể của user cho lesson này
+      const prog = userCourse.CourseProcess
+        .find(p => p.LessonId.toString() === thisLessonId)
+        || { LessonStatus: 0, LessonProcess: [] };
+
+      // load tất cả video của lesson
+      const videos = await Video.find({ LessonId: lesson._id })
+        .select("_id title url")
+        .lean();
+
+      // xác định seenIDs khi LessonStatus=0
+      const seenIDs = prog.LessonStatus === 0 && Array.isArray(prog.LessonProcess)
+        ? prog.LessonProcess.map(id => id.toString())
+        : [];
+
+      // build videoStatuses theo rule
+      const videoStatuses = videos.map(v => {
+        const vid = v._id.toString();
+        let completed = false;
+        if (courseStatus === 1 || prog.LessonStatus === 1) {
+          completed = true;
+        } else {
+          completed = seenIDs.includes(vid);
+        }
+        return {
+          videoId: vid,
+          title: v.title,
+          url: v.url,
+          completed
+        };
       });
-      // Nếu LessonStatus = 1, tất cả video trong LessonProcess đều đã hoàn thành
-      if (lesson.LessonStatus === 1) {
-        lesson.LessonProcess.forEach((videoId) => {
-          videoStatuses[videoId] = 1; // Đánh dấu tất cả video trong lesson là đã hoàn thành
-        });
-      } else {
-        // Kiểm tra trạng thái từng video trong LessonProcess
-        lesson.LessonProcess.forEach((videoId) => {
-          if (videoStatuses[videoId] !== 1) {
-            videoStatuses[videoId] = 0;
-          }
-        });
-      }
-      if (lesson.LessonProcess.length === totalVideosInLesson) {
-        lesson.LessonStatus = 1; // Đánh dấu LessonStatus là 1 (hoàn thành)
-      }
-    }
 
-    return res.status(200).json(videoStatuses);
+      const totalVideos = videos.length;
+      const completedCount = videoStatuses.filter(v => v.completed).length;
+      const lessonStatus = courseStatus === 1 ? 1 : prog.LessonStatus;
+      const completionRate = totalVideos > 0
+        ? completedCount / totalVideos
+        : 0;
+
+      return {
+        lessonId: thisLessonId,
+        lessonStatus,
+        totalVideos,
+        completedCount,
+        completionRate,
+        videos: videoStatuses
+      };
+    }));
+
+    // 5) Trả về kết quả
+    return res.json({
+      courseId,
+      courseStatus,
+      lessons: result
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("getVideoStatus error:", error);
+    return res.status(500).json({
+      message: "Lỗi khi lấy trạng thái video",
+      error: error.message
+    });
   }
 };
+

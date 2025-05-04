@@ -3,6 +3,10 @@ const router = express.Router();
 const Pay = require("../../models/pay.model");
 const User = require("../../models/user.model");
 const Course = require("../../models/course.model");
+const payController = require("../../controllers/client/pay.controller");
+
+// [POST] /pay/pos
+router.post('/pos', payController.payMoMo);
 
 router.post('/zalopay-callback', async (req, res) => {
    console.log("📥 Nhận callback từ ZaloPay:", req.body);

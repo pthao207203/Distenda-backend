@@ -11,11 +11,7 @@ const historyController = require("../../controllers/admin/history.controller");
 
 router.delete("/delete/:VideoID", controller.deleteItem);
 
-router.get("/create/:LessonID", controller.createItem);
-
 router.post("/create/:LessonID", controller.createPost);
-
-router.get("/edit/:VideoID", controller.editItem);
 
 router.post("/edit/:VideoID", controller.editPost);
 

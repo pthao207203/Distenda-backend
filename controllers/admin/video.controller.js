@@ -22,22 +22,6 @@ module.exports.deleteItem = async (req, res) => {
     code: 200,
     message: "Xóa thành công!"
   })
-  // req.flash("success", "Xóa thành công!");
-  // res.redirect("back");
-};
-
-// [GET] /admin/video/create/:LessonID
-module.exports.createItem = async (req, res) => {
-  const id = req.params.LessonID;
-  const lesson = await Lesson.findOne({
-    _id: id,
-    LessonDeleted: 1,
-  });
-
-  res.render("admin/pages/video/create", {
-    pageTitle: "Thêm bài học",
-    lesson: lesson,
-  });
 };
 
 // [POST] /admin/video/create/:LessonID
@@ -58,33 +42,6 @@ module.exports.createPost = async (req, res) => {
     code: 200,
     message: "Thêm chương học thành công!"
   })
-  // res.redirect(
-  //   `${systemConfig.prefixAdmin}/lesson/detail/${req.params.LessonID}`
-  // );
-};
-
-// [GET] /admin/video/edit/:VideoID
-module.exports.editItem = async (req, res) => {
-  try {
-    const find = {
-      VideoDeleted: 1,
-      _id: req.params.VideoID,
-    };
-    const video = await Video.findOne(find);
-
-    const lesson = await Lesson.findOne({
-      _id: video.LessonId,
-    });
-    video.lesson = lesson;
-
-    res.render("admin/pages/video/edit", {
-      pageTitle: "Chỉnh sửa chương học",
-      video: video,
-    });
-  } catch (error) {
-    req.flash("error", "Không tìm thấy chương học!");
-    res.redirect("back");
-  }
 };
 
 // [POST] /admin/video/edit/:VideoID
@@ -95,7 +52,6 @@ module.exports.editPost = async (req, res) => {
       UserId: res.locals.user.id,
       editedAt: new Date(),
     };
-    // console.log(req.body);
     await Video.updateOne(
       { _id: req.params.VideoID },
       {
@@ -107,21 +63,13 @@ module.exports.editPost = async (req, res) => {
       code: 200,
       message: "Cập nhật bài học thành công!"
     })
-    // req.flash("success", "Cập nhật thành công!");
   } catch (error) {
     res.json({
       code: 400,
       message: "Cập nhật bài học thất bại!"
     })
     console.log(error)
-    // req.flash("error", "Cập nhật thất bại!");
   }
-  // const find = {
-  //   VideoDeleted: 1,
-  //   _id: req.params.VideoID,
-  // };
-  // const video = await Video.findOne(find);
-  // res.redirect(`${systemConfig.prefixAdmin}/lesson/detail/${video.LessonId}`);
 };
 
 // [GET] /admin/video/detail/:VideoID
@@ -132,36 +80,26 @@ module.exports.detailItem = async (req, res) => {
       _id: req.params.VideoID,
     };
 
-    const video = await Video.findOne(find);
+    const video = await Video.findOne(find)
+      .populate({
+        path: "LessonId",
+        match: { LessonDeleted: 1 }, // chỉ populate nếu LessonDeleted = 1
+        model: "Lesson",
+      })
+      .lean();
 
-    const lesson = await Lesson.findOne({
-      _id: video.LessonId,
-      LessonDeleted: 1,
-    });
-    video.lesson = lesson;
+    if (!video) {
+      return res.status(404).json({ message: "Không tìm thấy video" });
+    }
 
-    // const count = await Lesson.countDocuments({
-    //   CourseId: req.params.CourseID,
-    // });
-    // if (count > 0) {
-    //   const lesson = await Lesson.find({
-    //     CourseId: req.params.CourseID,
-    //     LessonDeleted: 1,
-    //   });
-    //   course.lesson = lesson;
-    // }
-    res.json(video)
-    // res.render("admin/pages/video/detail", {
-    //   pageTitle: video.VideoName,
-    //   video: video,
-    // });
+    // Gắn lại lesson cho dễ dùng nếu muốn
+    video.lesson = video.LessonId;
+    res.json(video);
   } catch (error) {
     console.log(error)
     res.json({
       code: 400,
-      message: "Không tìm thấy sản phẩm!"
+      message: error
     })
-    // req.flash("error", "Không tìm thấy sản phẩm!");
-    // res.redirect(`${systemConfig.prefixAdmin}/courses`);
   }
 };

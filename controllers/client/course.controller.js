@@ -6,26 +6,22 @@ const Video = require("../../models/video.model");
 const Exercise = require("../../models/exercise.model");
 const User = require("../../models/user.model");
 const createTreeHelper = require("../../helpers/createTree");
+const mongoose = require("mongoose");
 
 // [GET] /courses
 module.exports.index = async (req, res) => {
   const courses = await Course.find({
     CourseDeleted: 1,
     CourseStatus: 1,
-  }).lean();
-
-  for (const course of courses) {
-    const intructor = await Admin.findOne({ _id: course.CourseIntructor });
-    // console.log(intructor)
-    course.intructor = intructor.AdminFullName;
-  }
+  })
+    .populate({
+      path: 'CourseIntructor', // Tên trường tham chiếu
+      model: 'Admin',
+      select: 'AdminFullName', // Chỉ lấy tên
+    })
+    .lean();
 
   res.json(courses);
-  // res.render('client/pages/courses/index', {
-  //   pageTitle: "Danh sách khoá học",
-  //   courses: courses,
-  //   allCategory: newCategory,
-  // })
 };
 
 // [GET] /courses/detail/:CourseSlug
@@ -37,7 +33,13 @@ module.exports.detail = async (req, res) => {
       CourseStatus: 1,
     };
     let course = {};
-    course = await Course.findOne(find).lean();
+    course = await Course.findOne(find)
+      .populate({
+        path: "CourseIntructor",
+        select: "AdminFullName",
+        match: { AdminDeleted: 1 },
+      })
+      .lean();
     // console.log(course)
 
     if (course.CourseIntructor && course.CourseIntructor != "") {
@@ -52,7 +54,7 @@ module.exports.detail = async (req, res) => {
       CourseId: course._id,
       LessonDeleted: 1,
     });
-    // console.log("count", count)
+    console.log("count", count)
     if (count > 0) {
       const lesson = await Lesson.find({
         CourseId: course._id,
@@ -61,8 +63,8 @@ module.exports.detail = async (req, res) => {
       for (const item of lesson) {
         const video = await Video.find({
           LessonId: item._id,
-          VideoDeleted: 1,
-        }).select("VideoName");
+          VideoDeleted: 1
+        }).select("VideoName VideoSlug")
         if (video.length != 0) {
           item.video = video;
         }
@@ -133,105 +135,83 @@ module.exports.detail = async (req, res) => {
     //   course: course,
     // });
   } catch (error) {
-    req.flash("error", "Không tìm thấy sản phẩm!");
-    res.redirect(`/courses`);
+    res.json({
+      code: 400,
+      message: error.message
+    })
   }
 };
 
+function convertToValidObjectIdList(courseList, statusFilter = null) {
+  return courseList
+    .filter((item) => statusFilter === null || item.CourseStatus === statusFilter)
+    .map((item) => {
+      const rawId = item.CourseId;
+
+      // Nếu đã là ObjectId thật
+      if (rawId instanceof mongoose.Types.ObjectId) return rawId;
+
+      // Nếu là object/document hoặc chuỗi chứa "new ObjectId(...)"
+      const match = rawId?.toString?.().match(/[a-f\d]{24}/i);
+      if (match) return new mongoose.Types.ObjectId(match[0]);
+
+      return null; // không hợp lệ
+    })
+    .filter((id) => id !== null);
+}
 // [GET] /courses/completed
 module.exports.indexCompleted = async (req, res) => {
-  // console.log(res.locals.user.UserCourse)
   if (res.locals.user) {
-    const listSubId = res.locals.user.UserCourse.filter(
-      (item) => item.CourseStatus == 1
-    ).map((item) => item.CourseId);
-    // console.log(listSubId)
+    const listSubId = convertToValidObjectIdList(res.locals.user.UserCourse, 1);
+
     const courses = await Course.find({
-      _id: { $in: [...listSubId] },
+      _id: { $in: listSubId },
       CourseStatus: 1,
       CourseDeleted: 1,
-    }).lean();
-    // console.log(courses)
-
-    for (const course of courses) {
-      const intructor = await Admin.findOne({ _id: course.CourseIntructor });
-      // console.log(intructor)
-      course.intructor = intructor;
-    }
+    })
+      .populate("CourseIntructor", "AdminFullName")
+      .lean();
 
     res.json(courses);
   } else {
-    const courses = null;
-    res.json(courses);
+    res.json(null);
   }
-
-  // res.render('client/pages/courses/index', {
-  //   pageTitle: "Danh sách khoá học",
-  //   courses: courses,
-  //   allCategory: newCategory,
-  // })
 };
 
 // [GET] /courses/purchased
 module.exports.indexPurchased = async (req, res) => {
   if (res.locals.user) {
-    // console.log(res.locals.user.UserCourse)
-    const listSubId = res.locals.user?.UserCourse.map((item) => item.CourseId);
-    // console.log(listSubId)
+    const listSubId = convertToValidObjectIdList(res.locals.user.UserCourse);
+
     const courses = await Course.find({
-      _id: { $in: [...listSubId] },
+      _id: { $in: listSubId },
       CourseStatus: 1,
       CourseDeleted: 1,
-    }).lean();
-    // console.log(courses)
-
-    for (const course of courses) {
-      const intructor = await Admin.findOne({ _id: course.CourseIntructor });
-      // console.log(intructor)
-      course.intructor = intructor;
-    }
+    })
+      .populate("CourseIntructor", "AdminFullName")
+      .lean();
 
     res.json(courses);
   } else {
-    const courses = null;
-    res.json(courses);
+    res.json(null);
   }
-  // res.render('client/pages/courses/index', {
-  //   pageTitle: "Danh sách khoá học",
-  //   courses: courses,
-  //   allCategory: newCategory,
-  // })
 };
 
 // [GET] /courses/studying
 module.exports.indexStudying = async (req, res) => {
   if (res.locals.user) {
-    console.log(res.locals.user.UserCourse);
-    const listSubId = res.locals.user.UserCourse.filter(
-      (item) => item.CourseStatus == 0
-    ).map((item) => item.CourseId);
-    // console.log(listSubId)
+    const listSubId = convertToValidObjectIdList(res.locals.user.UserCourse, 0);
+
     const courses = await Course.find({
-      _id: { $in: [...listSubId] },
+      _id: { $in: listSubId },
       CourseStatus: 1,
       CourseDeleted: 1,
-    }).lean();
-    // console.log(courses)
-
-    for (const course of courses) {
-      const intructor = await Admin.findOne({ _id: course.CourseIntructor });
-      // console.log(intructor)
-      course.intructor = intructor;
-    }
+    })
+      .populate("CourseIntructor", "AdminFullName")
+      .lean();
 
     res.json(courses);
   } else {
-    const courses = null;
-    res.json(courses);
+    res.json(null);
   }
-  // res.render('client/pages/courses/index', {
-  //   pageTitle: "Danh sách khoá học",
-  //   courses: courses,
-  //   allCategory: newCategory,
-  // })
 };

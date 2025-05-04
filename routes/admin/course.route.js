@@ -17,27 +17,16 @@ router.delete("/delete/:CourseID", controller.deleteItem);
 
 router.get("/create", controller.createItem);
 
-router.post(
-  "/create",
-  // upload.single('CoursePicture'),
-  // uploadCloud.upload,
-  // validate.createPost,
-  controller.createPost
-);
+router.post("/create", controller.createPost);
 
 router.get("/detail/:CourseID", controller.detailItem);
 
 router.get("/edit/:CourseID", controller.editItem);
 
-router.post(
-  "/edit/:CourseID",
-  // upload.single('CoursePicture'),
-  // uploadCloud.upload,
-  // validate.createPost,
-  controller.editPost
-);
+router.post("/edit/:CourseID", controller.editPost);
+
 router.get("/history", historyController.getCourseHistory);
+
 router.get("/detail/:CourseID/history", historyController.getLessonHistoryByCourseID);
-// router.get("/update-all-course-profit", controller.updateAllCourseProfit);
 
 module.exports = router;

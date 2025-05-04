@@ -11,6 +11,7 @@ const exerciseSchema = new mongoose.Schema({
     unique: true,
   },
   ExerciseQuestion: String,
+  ExerciseLanguage: String,
   ExerciseSample: String,
   ExerciseAnswer: String,
   ExerciseTestcase: [
