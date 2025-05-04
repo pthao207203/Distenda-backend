@@ -26,7 +26,10 @@ module.exports.index = async (req, res) => {
 
 // [POST] /admin/category/create
 module.exports.createPost = async (req, res) => {
-
+  // console.log(req.body)
+  if (req.body.CategoryParent_id == null) {
+    req.body.CategoryParent_id = ""
+  }
   if (!req.body.CategoryPosition) {
     const count = await Category.countDocuments();
     req.body.CategoryPosition = count + 1;
