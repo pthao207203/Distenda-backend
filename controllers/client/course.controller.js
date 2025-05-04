@@ -144,7 +144,7 @@ module.exports.detail = async (req, res) => {
 
 function convertToValidObjectIdList(courseList, statusFilter = null) {
   return courseList
-    .filter((item) => statusFilter === null || item.CourseStatus === statusFilter)
+    .filter((item) => statusFilter === null || item.CourseStatus == statusFilter)
     .map((item) => {
       const rawId = item.CourseId;
 

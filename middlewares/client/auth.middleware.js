@@ -22,13 +22,11 @@ module.exports.requireAuth = async (req, res, next) => {
 };
 
 module.exports.auth = async (req, res, next) => {
-
   const user = await User.findOne({
     UserToken: req.cookies.user_token,
     UserDeleted: 1,
     UserStatus: 1,
   }).select("-UserPassword");
-
   if (user) {
     res.locals.user = user;
   }

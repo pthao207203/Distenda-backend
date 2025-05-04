@@ -92,42 +92,41 @@ module.exports.payZaloPay = async (req, res) => {
 };
 
 
+// [POST] /pay/:CourseSlug/momo
 module.exports.payMoMo = async (req, res) => {
   if (!req.cookies.user_token) {
     return res.json({
       code: 401,
-      message: "Bạn chưa đăng nhập!",
+      message: "Bạn chưa đăng nhập!"
     });
   }
 
   const course = await Course.findOne({
-    CourseSlug: req.params.CourseSlug,
+    CourseSlug: req.params.CourseSlug
   });
   if (!course) {
     return res.json({
       code: 404,
-      message: "Không tìm thấy khóa học!",
+      message: "Không tìm thấy khóa học!"
     });
   }
 
-  const amount = (course.CoursePrice * (100 - course.CourseDiscount)) / 100;
+  const amount = course.CoursePrice * (100 - course.CourseDiscount) / 100;
   const orderId = momoConfig.partnerCode + new Date().getTime();
   const requestId = orderId;
+  // console.log("user ", res.locals)
+  const rawSignature =
+    `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${momoConfig.extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderId}&orderInfo=Thanh toán khoá học ${course.CourseName}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
 
-  const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${momoConfig.extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderId}&orderInfo=Thanh toán khoá học ${course.CourseName}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
-
-  const signature = crypto
-    .createHmac("sha256", momoConfig.secretKey)
-    .update(rawSignature)
-    .digest("hex");
+  const signature = crypto.createHmac('sha256', momoConfig.secretKey).update(rawSignature).digest('hex');
 
   const requestBody = {
     partnerCode: momoConfig.partnerCode,
-    partnerName: "Distenda",
-    storeId: "DistendaStore",
-    requestId: requestId,
+    partnerName: 'Distenda',
+    storeId: 'DistendaStore',
+    requestId,
     amount: `${amount}`,
-    orderId: orderId,
+    orderId,
     orderInfo: `Thanh toán khoá học ${course.CourseName}`,
     redirectUrl: momoConfig.redirectUrl,
     ipnUrl: momoConfig.ipnUrl,
@@ -135,47 +134,44 @@ module.exports.payMoMo = async (req, res) => {
     requestType: momoConfig.requestType,
     autoCapture: momoConfig.autoCapture,
     extraData: momoConfig.extraData,
-    signature: signature,
+    signature
   };
 
   try {
-    const response = await axios.post(
-      "https://test-payment.momo.vn/v2/gateway/api/create",
-      requestBody,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const response = await axios.post('https://test-payment.momo.vn/v2/gateway/api/create', requestBody, {
+      headers: {
+        'Content-Type': 'application/json'
       }
-    );
-    console.log("Response MoMo:", response.data);
+    });
 
+    // Lưu đơn hàng vào DB kèm response MoMo
     const pay = new Pay({
-      UserId: res.locals.user.id,
+      UserId: res.locals.user._id,
       CourseId: course._id,
       PayTotal: amount,
       orderId: orderId,
-      PayStatus: 0,
-      PayResponse: response.data, // Lưu JSON response từ MoMo
+      PayStatus: 0, // Đơn hàng khởi tạo, chờ thanh toán
+      PayResponse: response.data, // Lưu toàn bộ JSON response từ MoMo
       createdBy: {
-        UserId: res.locals.user.id,
-      },
+        UserId: res.locals.user._id
+      }
     });
     await pay.save();
 
     return res.json({
       code: 200,
-      payUrl: response.data.payUrl,
+      payUrl: response.data.payUrl
     });
   } catch (err) {
-    console.log("Lỗi MoMo:", err.message);
-    return res.status(500).json({
+    console.log(err)
+    return res.json({
       code: 500,
       message: "Lỗi khi kết nối MoMo",
-      error: err.message,
+      error: err.message
     });
   }
 };
+
 
 module.exports.handleCallback = async (req, res) => {
   console.log("📥 Nhận IPN từ MoMo:", req.body);
@@ -212,7 +208,7 @@ module.exports.handleCallback = async (req, res) => {
     // Thực hiện cập nhật người dùng và khóa học sau thanh toán thành công
     const newCourse = {
       CourseId: CourseId,
-      CourseStatus: 0, 
+      CourseStatus: 0,
       CourseProcess: [],
     };
 
