@@ -10,7 +10,8 @@ router.post("/:CourseSlug", controller.payPost);
 
 router.post("/:CourseSlug/momo", controller.payMoMo);
 
-// [POST] /pay/pos
+router.post("/:CourseSlug/zalopay", controller.payZaloPay);
+
 router.post('/pos', payController.payMoMoPOS);
 
 router.post('/dummy-callback', (req, res) => {
