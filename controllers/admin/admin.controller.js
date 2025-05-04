@@ -5,6 +5,19 @@ const Course = require("../../models/course.model");
 const systemConfig = require("../../config/system");
 const generateHelper = require("../../helpers/generate");
 
+module.exports.getCurrentAdmin = async (req, res) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ message: "Chưa đăng nhập" });
+  }
+
+  const admin = await Admin.findOne({ AdminToken: token }).lean();
+  if (!admin) {
+    return res.status(404).json({ message: "Không tìm thấy người dùng" });
+  }
+
+  res.json(admin);
+};
 // [GET] /admin/admin
 module.exports.index = async (req, res) => {
   let find = {

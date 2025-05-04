@@ -23,6 +23,8 @@ router.post('/create', upload.single('AdminAvatar'), uploadCloud.upload, control
 
 router.delete('/delete/:AdminID', controller.deleteItem)
 
+router.get('/me', controller.getCurrentAdmin);
+
 router.post(
   '/edit/:AdminID',
   // upload.single('AdminAvatar'),
