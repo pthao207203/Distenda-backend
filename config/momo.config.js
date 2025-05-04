@@ -1,8 +1,8 @@
 module.exports = {
-  partnerCode: "MOMOFT3W20250415",
-  accessKey: "HxsS9vtjNApgNU28",
+  partnerCode: "MOMO",
+  accessKey: "F8BBA842ECF85",
   secretKey: process.env.MOMO_SECRET,
-  redirectUrl: "http://localhost:3000/courses/handle-payment",
+  redirectUrl: `${process.env.FRONTEND_PORT}/courses/handle-payment`,
   ipnUrl: "https://distenda.onrender.com/pay/dummy-callback",
   requestType: "captureWallet",
   extraData: "",
