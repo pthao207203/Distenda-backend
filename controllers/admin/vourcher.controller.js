@@ -66,7 +66,7 @@ module.exports.createPost = async (req, res) => {
     req.body.discountPercentage = parseInt(req.body.discountPercentage);
     req.body.discountAmount = parseInt(req.body.discountAmount);
     req.body.minAmount = parseInt(req.body.minAmount);
-    req.body.validityPeriod = parseInt(req.body.validityPeriod || 30);
+    req.body.validityPeriod = parseInt(req.body.validityPeriod);
 
     const voucher = new Voucher(req.body);
     await voucher.save();
@@ -141,7 +141,6 @@ module.exports.editItem = async (req, res) => {
   }
 };
 
-// [POST] /admin/voucher/edit/:VoucherID
 // [POST] /admin/voucher/edit/:VoucherID
 module.exports.editPost = async (req, res) => {
   try {
