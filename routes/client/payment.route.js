@@ -40,6 +40,7 @@ router.post('/confirm', async (req, res) => {
       });
     }
 
+    const money = (user.UserMoney ? user.UserMoney : 0) + amount;
     // Cập nhật UserCourse
     await User.updateOne({
       _id: UserId
@@ -50,7 +51,8 @@ router.post('/confirm', async (req, res) => {
           CourseStatus: 1,
           CourseProcess: []
         }
-      }
+      },
+      UserMoney: money,
     });
 
     // Tính toán lương giáo viên và lợi nhuận
