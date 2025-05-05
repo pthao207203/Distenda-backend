@@ -40,7 +40,7 @@ router.post('/confirm', async (req, res) => {
       });
     }
 
-    const money = (user.UserMoney ? user.UserMoney : 0) + amount;
+    const money = parseInt(user.UserMoney ? user.UserMoney : 0) + parseInt(amount);
     // Cập nhật UserCourse
     await User.updateOne({
       _id: UserId
