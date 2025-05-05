@@ -73,7 +73,7 @@ module.exports.detail = async (req, res) => {
         const exer = await Exercise.findOne({
           LessonId: item._id,
           ExerciseDeleted: 1,
-        }).select("ExerciseName");
+        }).select("ExerciseName ExerciseSlug");
         if (exer) {
           item.exercise = exer;
         }
