@@ -65,19 +65,34 @@ if (process.env.NODE_ENV === 'test') {
     }
     ];
 
-    app.get('/api/voucher', (req, res) => {
-        res.status(200).json([{
-            id: "1",
-            code: "TEST123",
-            discount: 10
-        },
-        {
-            id: "2",
-            code: "DEMO456",
-            discount: 20
+    let mockVouchers = [
+        { id: "1", code: "TEST123", discount: 10 },
+        { id: "2", code: "DEMO456", discount: 20 }
+      ];
+      app.get('/api/voucher', (req, res) => {
+        res.status(200).json(mockVouchers);
+      });
+    
+      app.post('/api/voucher', (req, res) => {
+        const { code, discount } = req.body;
+        const newVoucher = {
+          id: `${Date.now()}`,
+          code,
+          discount
+        };
+        mockVouchers.push(newVoucher);
+        res.status(201).json(newVoucher);
+      });
+    
+      app.delete('/api/voucher/:id', (req, res) => {
+        const { id } = req.params;
+        const index = mockVouchers.findIndex(v => v.id === id);
+        if (index !== -1) {
+          const deleted = mockVouchers.splice(index, 1);
+          return res.status(200).json(deleted[0]);
         }
-        ]);
-    });
+        res.status(404).json({ message: 'Voucher not found' });
+      });
 
     app.get('/api/admin', (req, res) => {
         res.status(200).json({
@@ -538,4 +553,3 @@ app.get("*", (req, res) => {
 });
 
 module.exports = app;
-
