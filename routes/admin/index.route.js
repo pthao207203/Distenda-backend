@@ -17,7 +17,8 @@ const settingRoute = require("./setting.route");
 const payRoute = require("./pay.route");
 const bannerRoute = require("./banner.route");
 const voucherRoute = require("./voucher.route");
-const messageRoute = require("./message.route")
+const messageRoute = require("./message.route");
+const livestreamRoute = require("./livestream.route");
 
 module.exports = (app) => {
   app.use(
@@ -91,9 +92,14 @@ module.exports = (app) => {
     voucherRoute
   );
   app.use(
-    systemConfig.prefixAdmin + `/message`, 
-    authMiddleware.requireAuth, 
+    systemConfig.prefixAdmin + `/message`,
+    authMiddleware.requireAuth,
     messageRoute
+  );
+  app.use(
+    systemConfig.prefixAdmin + `/livestreams`,
+    authMiddleware.requireAuth,
+    livestreamRoute
   );
 
   app.use(systemConfig.prefixAdmin + `/auth`, authRoute);
