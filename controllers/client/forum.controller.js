@@ -46,7 +46,7 @@ exports.getNewestPosts = async (req, res) => {
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.UserFullName,
-          avatar: postObj.Author.UserAvatar || "/profile.svg",
+          avatar: postObj.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
           member: member,
           type: "User",
         };
@@ -69,7 +69,7 @@ exports.getNewestPosts = async (req, res) => {
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.AdminFullName,
-          avatar: postObj.Author.AdminAvatar || "/profile.svg",
+          avatar: postObj.Author.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
           role: roleName,
           type: "Admin",
         };
@@ -158,7 +158,7 @@ module.exports.getDetailPost = async (req, res) => {
       post.Author = {
         _id: user._id,
         name: user.UserFullName,
-        avatar: user.UserAvatar || "/profile.svg",
+        avatar: user.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
         member: member,
         type: "User",
       };
@@ -179,7 +179,7 @@ module.exports.getDetailPost = async (req, res) => {
       post.Author = {
         _id: admin._id,
         name: admin.AdminFullName,
-        avatar: admin.AdminAvatar || "/profile.svg",
+        avatar: admin.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
         role: roleName,
         type: "Admin",
       };
@@ -204,7 +204,7 @@ module.exports.getDetailPost = async (req, res) => {
                   ? {
                       _id: reply.Author._id,
                       name: reply.Author.UserFullName,
-                      avatar: reply.Author.UserAvatar || "/profile.svg",
+                      avatar: reply.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
                     }
                   : null,
               }))
