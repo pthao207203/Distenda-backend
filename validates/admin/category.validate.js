@@ -7,3 +7,5 @@ module.exports.createPost = (req, res, next) => {
   
   next();
 }
+
+// chặn việc người dùng nhập thiếu trường categoryName khi tạo mới danh mục (gian lận bằng cách F12)
