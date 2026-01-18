@@ -29,6 +29,7 @@ module.exports.auth = async (req, res, next) => {
   }).select("-UserPassword");
   if (user) {
     res.locals.user = user;
+    req.user = user;
   }
 
   next();
