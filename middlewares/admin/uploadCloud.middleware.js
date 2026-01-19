@@ -80,3 +80,58 @@ module.exports.uploads = async (req, res, next) => {
     next();
   }
 };
+
+const uploadToCloudinary = (file, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'forum',
+        resource_type: 'auto', // tự động nhận diện image | raw | video
+        ...options
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
+    streamifier.createReadStream(file.buffer).pipe(stream);
+  });
+};
+
+module.exports.uploadMultipleFields = async (req, res, next) => {
+  try {
+    // Xử lý Images (ảnh)
+    if (req.files?.Images?.length > 0) {
+      const imagePromises = req.files.Images.map(file =>
+        uploadToCloudinary(file, { resource_type: 'image' })
+      );
+      const uploadedImages = await Promise.all(imagePromises);
+      req.body.Images = uploadedImages.map(r => r.secure_url);
+    }
+
+    // Xử lý Files (file khác - pdf, doc, zip,...)
+    if (req.files?.Files?.length > 0) {
+      const filePromises = req.files.Files.map(async (file) => {
+        const result = await uploadToCloudinary(file, { resource_type: 'raw' });
+        return {
+          url: result.secure_url,
+          name: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype
+        };
+      });
+
+      req.body.Files = await Promise.all(filePromises);
+    }
+
+    next();
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi upload file lên Cloudinary',
+      error: error.message
+    });
+  }
+};

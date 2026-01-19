@@ -18,6 +18,19 @@ exports.getNewestPosts = async (req, res) => {
 
     for (let post of posts) {
       let postObj = post.toObject();
+      const userId = req.user?._id?.toString();
+
+      postObj.myReaction = null;
+
+      if (userId && Array.isArray(postObj.Reactions)) {
+        const myReaction = postObj.Reactions.find(
+          (r) => r.User?.toString() === userId
+        );
+
+        if (myReaction) {
+          postObj.myReaction = myReaction.Type;
+        }
+      }
 
       // Trường hợp AUTHOR LÀ USER
       if (postObj.AuthorModel === "User" && postObj.Author) {
@@ -46,7 +59,9 @@ exports.getNewestPosts = async (req, res) => {
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.UserFullName,
-          avatar: postObj.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          avatar:
+            postObj.Author.UserAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
           member: member,
           type: "User",
         };
@@ -69,7 +84,9 @@ exports.getNewestPosts = async (req, res) => {
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.AdminFullName,
-          avatar: postObj.Author.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          avatar:
+            postObj.Author.AdminAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
           role: roleName,
           type: "Admin",
         };
@@ -95,17 +112,104 @@ exports.getMyPosts = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const posts = await ForumPost.find({
+    let posts = await ForumPost.find({
       Author: userId,
       PostDeleted: 1,
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .populate("Author");
+
+    const result = [];
+
+    for (let post of posts) {
+      let postObj = post.toObject();
+
+      const userId = req.user?._id?.toString();
+
+      postObj.myReaction = null;
+
+      if (userId && Array.isArray(postObj.Reactions)) {
+        const myReaction = postObj.Reactions.find(
+          (r) => r.User?.toString() === userId
+        );
+
+        if (myReaction) {
+          postObj.myReaction = myReaction.Type;
+        }
+      }
+      // Trường hợp AUTHOR LÀ USER
+      if (postObj.AuthorModel === "User" && postObj.Author) {
+        const user = await User.findById(postObj.Author._id).lean();
+
+        let member = "Thành viên đồng";
+
+        if (user?.UserMoney) {
+          const money = user.UserMoney;
+
+          switch (true) {
+            case money > 10000000:
+              member = "Thành viên Vip";
+              break;
+            case money >= 5000000:
+              member = "Thành viên vàng";
+              break;
+            case money >= 1000000:
+              member = "Thành viên bạc";
+              break;
+            default:
+              member = "Thành viên đồng";
+          }
+        }
+
+        postObj.Author = {
+          _id: postObj.Author._id,
+          name: postObj.Author.UserFullName,
+          avatar:
+            postObj.Author.UserAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          member: member,
+          type: "User",
+        };
+      }
+
+      // Trường hợp AUTHOR LÀ ADMIN
+      if (postObj.AuthorModel === "Admin" && postObj.Author) {
+        const admin = await Admin.findById(postObj.Author._id).lean();
+
+        let roleName = "Admin";
+
+        if (admin?.AdminRole_id) {
+          const role = await Role.findById(admin.AdminRole_id).lean();
+
+          if (role) {
+            roleName = role.RoleName;
+          }
+        }
+
+        postObj.Author = {
+          _id: postObj.Author._id,
+          name: postObj.Author.AdminFullName,
+          avatar:
+            postObj.Author.AdminAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          role: roleName,
+          type: "Admin",
+        };
+      }
+
+      result.push(postObj);
+    }
 
     res.status(200).json({
       success: true,
-      data: posts,
+      data: result,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error in getMyPosts:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -158,7 +262,9 @@ module.exports.getDetailPost = async (req, res) => {
       post.Author = {
         _id: user._id,
         name: user.UserFullName,
-        avatar: user.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+        avatar:
+          user.UserAvatar ||
+          "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
         member: member,
         type: "User",
       };
@@ -179,7 +285,9 @@ module.exports.getDetailPost = async (req, res) => {
       post.Author = {
         _id: admin._id,
         name: admin.AdminFullName,
-        avatar: admin.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+        avatar:
+          admin.AdminAvatar ||
+          "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
         role: roleName,
         type: "Admin",
       };
@@ -204,7 +312,9 @@ module.exports.getDetailPost = async (req, res) => {
                   ? {
                       _id: reply.Author._id,
                       name: reply.Author.UserFullName,
-                      avatar: reply.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+                      avatar:
+                        reply.Author.UserAvatar ||
+                        "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
                     }
                   : null,
               }))
@@ -232,19 +342,24 @@ module.exports.getDetailPost = async (req, res) => {
 // [POST] /forum/create
 exports.createPost = async (req, res) => {
   try {
-    const { Title, Content, Image, Images } = req.body;
-
+    const { Title, Content } = req.body;
+    if (!Title?.trim() || !Content?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Title và Content là bắt buộc",
+      });
+    }
     const newPost = await ForumPost.create({
-      Title,
-      Content,
-      Image,
-      Images,
+      Title: Title.trim(),
+      Content: Content.trim(),
       Author: req.user._id,
       AuthorModel: "User",
       createdBy: {
         UserId: req.user._id,
         model: "User",
       },
+      Images: req.body.Images || [],
+      Files: req.body.Files || [],
     });
 
     res.status(201).json({
@@ -345,18 +460,24 @@ exports.reactToPost = async (req, res) => {
       $pull: { Reactions: { User: userId } },
     });
 
-    const updated = await ForumPost.findByIdAndUpdate(
-      PostID,
-      {
-        $addToSet: {
-          Reactions: {
-            User: userId,
-            Type: type,
+    let updated;
+    if (type) {
+      updated = await ForumPost.findByIdAndUpdate(
+        PostID,
+        {
+          $push: {
+            Reactions: {
+              User: userId,
+              Type: type,
+            },
           },
         },
-      },
-      { new: true }
-    );
+        { new: true }
+      );
+    } else {
+      // Nếu hủy: chỉ lấy post hiện tại sau khi pull
+      updated = await ForumPost.findById(PostID);
+    }
 
     res.status(200).json({
       success: true,
