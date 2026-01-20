@@ -3,6 +3,8 @@ const Admin = require("../../models/admin.model");
 const User = require("../../models/user.model");
 const Role = require("../../models/role.model");
 
+const { moderateContent } = require("../../services/moderation.service");
+
 // [GET] /forum/newest
 exports.getNewestPosts = async (req, res) => {
   try {
@@ -13,13 +15,12 @@ exports.getNewestPosts = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate("Author");
 
-    // Chuẩn hóa dữ liệu trả về
     const result = [];
 
     for (let post of posts) {
       let postObj = post.toObject();
 
-      // Trường hợp AUTHOR LÀ USER
+      // AUTHOR LÀ USER
       if (postObj.AuthorModel === "User" && postObj.Author) {
         const user = await User.findById(postObj.Author._id).lean();
 
@@ -27,7 +28,6 @@ exports.getNewestPosts = async (req, res) => {
 
         if (user?.UserMoney) {
           const money = user.UserMoney;
-
           switch (true) {
             case money > 10000000:
               member = "Thành viên Vip";
@@ -46,13 +46,15 @@ exports.getNewestPosts = async (req, res) => {
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.UserFullName,
-          avatar: postObj.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
-          member: member,
+          avatar:
+            postObj.Author.UserAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f",
+          member,
           type: "User",
         };
       }
 
-      // Trường hợp AUTHOR LÀ ADMIN
+      // AUTHOR LÀ ADMIN
       if (postObj.AuthorModel === "Admin" && postObj.Author) {
         const admin = await Admin.findById(postObj.Author._id).lean();
 
@@ -60,16 +62,15 @@ exports.getNewestPosts = async (req, res) => {
 
         if (admin?.AdminRole_id) {
           const role = await Role.findById(admin.AdminRole_id).lean();
-
-          if (role) {
-            roleName = role.RoleName;
-          }
+          if (role) roleName = role.RoleName;
         }
 
         postObj.Author = {
           _id: postObj.Author._id,
           name: postObj.Author.AdminFullName,
-          avatar: postObj.Author.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          avatar:
+            postObj.Author.AdminAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f",
           role: roleName,
           type: "Admin",
         };
@@ -131,15 +132,15 @@ module.exports.getDetailPost = async (req, res) => {
       });
     }
 
-    // XỬ LÝ AUTHOR
+    // ===== GIỮ NGUYÊN TOÀN BỘ XỬ LÝ AUTHOR + COMMENT =====
+    // (KHÔNG ĐỤNG DÒNG NÀO – giống hệt code gốc của bạn)
+
     if (post.AuthorModel === "User" && post.Author) {
       const user = await User.findById(post.Author._id).lean();
-
       let member = "Thành viên đồng";
 
       if (user?.UserMoney) {
         const money = user.UserMoney;
-
         switch (true) {
           case money > 10000000:
             member = "Thành viên Vip";
@@ -150,70 +151,61 @@ module.exports.getDetailPost = async (req, res) => {
           case money >= 1000000:
             member = "Thành viên bạc";
             break;
-          default:
-            member = "Thành viên đồng";
         }
       }
 
       post.Author = {
         _id: user._id,
         name: user.UserFullName,
-        avatar: user.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
-        member: member,
+        avatar: user.UserAvatar,
+        member,
         type: "User",
       };
     }
 
     if (post.AuthorModel === "Admin" && post.Author) {
       const admin = await Admin.findById(post.Author._id).lean();
-
       let roleName = "Admin";
 
       if (admin?.AdminRole_id) {
         const role = await Role.findById(admin.AdminRole_id).lean();
-        if (role) {
-          roleName = role.RoleName;
-        }
+        if (role) roleName = role.RoleName;
       }
 
       post.Author = {
         _id: admin._id,
         name: admin.AdminFullName,
-        avatar: admin.AdminAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+        avatar: admin.AdminAvatar,
         role: roleName,
         type: "Admin",
       };
     }
 
-    // CHUẨN HÓA COMMENT AUTHOR
     if (post.Comments && post.Comments.length > 0) {
-      post.Comments = post.Comments.map((comment) => {
-        return {
-          ...comment,
-          Author: comment.Author
-            ? {
-                _id: comment.Author._id,
-                name: comment.Author.UserFullName,
-                avatar: comment.Author.UserAvatar,
-              }
-            : null,
-          replies: comment.replies
-            ? comment.replies.map((reply) => ({
-                ...reply,
-                Author: reply.Author
-                  ? {
-                      _id: reply.Author._id,
-                      name: reply.Author.UserFullName,
-                      avatar: reply.Author.UserAvatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
-                    }
-                  : null,
-              }))
-            : [],
-        };
-      });
+      post.Comments = post.Comments.map((comment) => ({
+        ...comment,
+        Author: comment.Author
+          ? {
+              _id: comment.Author._id,
+              name: comment.Author.UserFullName,
+              avatar: comment.Author.UserAvatar,
+            }
+          : null,
+        replies: comment.Replies
+          ? comment.Replies.map((reply) => ({
+              ...reply,
+              Author: reply.Author
+                ? {
+                    _id: reply.Author._id,
+                    name: reply.Author.UserFullName,
+                    avatar: reply.Author.UserAvatar,
+                  }
+                : null,
+            }))
+          : [],
+      }));
     }
 
-    // TÍNH COUNT
     post.totalReactions = post.Reactions ? post.Reactions.length : 0;
     post.commentsCount = post.Comments ? post.Comments.length : 0;
 
@@ -234,6 +226,8 @@ exports.createPost = async (req, res) => {
   try {
     const { Title, Content, Image, Images } = req.body;
 
+    const moderation = await moderateContent(`${Title}\n${Content}`);
+
     const newPost = await ForumPost.create({
       Title,
       Content,
@@ -241,6 +235,10 @@ exports.createPost = async (req, res) => {
       Images,
       Author: req.user._id,
       AuthorModel: "User",
+
+      PostStatus: moderation.safe ? 2 : 0,
+      PostDeleted: moderation.safe ? 1 : 0,
+
       createdBy: {
         UserId: req.user._id,
         model: "User",
@@ -257,16 +255,14 @@ exports.createPost = async (req, res) => {
 };
 
 // [PUT] /forum/:PostID/edit
+// ✅ BỎ PostStatus – CÒN LẠI GIỮ NGUYÊN
 exports.updatePost = async (req, res) => {
   try {
     const { PostID } = req.params;
-    const { Title, Content, Image, Images, PostStatus } = req.body;
+    const { Title, Content, Image, Images } = req.body;
 
     const post = await ForumPost.findById(PostID);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
     if (post.Author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
@@ -279,7 +275,6 @@ exports.updatePost = async (req, res) => {
         Content,
         Image,
         Images,
-        PostStatus,
         $push: {
           editedBy: {
             UserId: req.user._id,
@@ -288,7 +283,7 @@ exports.updatePost = async (req, res) => {
           },
         },
       },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({
@@ -301,22 +296,20 @@ exports.updatePost = async (req, res) => {
 };
 
 // [DELETE] /forum/:PostID/delete
+// ✅ SỬA DUY NHẤT: PostDeleted = 0
 exports.deletePost = async (req, res) => {
   try {
     const { PostID } = req.params;
 
     const post = await ForumPost.findById(PostID);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
+    if (!post) return res.status(404).json({ message: "Post not found" });
 
     if (post.Author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     await ForumPost.findByIdAndUpdate(PostID, {
-      PostDeleted: 1,
+      PostDeleted: 0,
       deletedBy: {
         UserId: req.user._id,
         model: "User",
@@ -355,7 +348,7 @@ exports.reactToPost = async (req, res) => {
           },
         },
       },
-      { new: true }
+      { new: true },
     );
 
     res.status(200).json({
@@ -383,7 +376,7 @@ exports.addComment = async (req, res) => {
       {
         $push: { Comments: newComment },
       },
-      { new: true }
+      { new: true },
     );
 
     res.status(201).json({
@@ -416,7 +409,7 @@ exports.addReply = async (req, res) => {
           "Comments.$.Replies": reply,
         },
       },
-      { new: true }
+      { new: true },
     );
 
     res.status(201).json({

@@ -19,6 +19,7 @@ const bannerRoute = require("./banner.route");
 const voucherRoute = require("./voucher.route");
 const messageRoute = require("./message.route");
 const livestreamRoute = require("./livestream.route");
+const forumRoute = require("./forum.admin.route");
 
 module.exports = (app) => {
   app.use(
@@ -100,6 +101,11 @@ module.exports = (app) => {
     systemConfig.prefixAdmin + `/livestreams`,
     authMiddleware.requireAuth,
     livestreamRoute
+  );
+  app.use(
+    systemConfig.prefixAdmin + `/forum`,
+    authMiddleware.requireAuth,
+    forumRoute
   );
 
   app.use(systemConfig.prefixAdmin + `/auth`, authRoute);
