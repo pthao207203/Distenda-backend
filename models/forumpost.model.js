@@ -105,7 +105,6 @@ const forumPostSchema = new mongoose.Schema(
       sparse: true, // cho phép nhiều bài không có slug
     },
 
-    Image: String, // ảnh chính
     Images: [String], // nhiều ảnh
     Reactions: [reactionSchema],
     Comments: [commentSchema],
