@@ -16,7 +16,7 @@ router.post("/payment/zalopay-callback", async (req, res) => {
   try {
     const { data, mac } = req.body;
 
-    /** 1️⃣ Verify MAC */
+    /** 1️ Verify MAC */
     const macCheck = crypto
       .createHmac("sha256", key2)
       .update(data)
@@ -30,7 +30,7 @@ router.post("/payment/zalopay-callback", async (req, res) => {
       });
     }
 
-    /** 2️⃣ Parse data */
+    /** 2️ Parse data */
     const parsedData = JSON.parse(data);
     const {
       apptransid,
@@ -48,7 +48,7 @@ router.post("/payment/zalopay-callback", async (req, res) => {
       });
     }
 
-    /** 3️⃣ Find payment */
+    /** 3️ Find payment */
     const pay = await Pay.findOne({ orderId: apptransid });
     if (!pay) {
       console.error("❌ Order not found:", apptransid);
@@ -59,7 +59,7 @@ router.post("/payment/zalopay-callback", async (req, res) => {
       return res.json({ return_code: 1 });
     }
 
-    /** 4️⃣ Unlock course */
+    /** 4 Unlock course */
     const user = await User.findById(pay.UserId);
     if (!user) {
       return res.json({ return_code: 0 });
@@ -77,7 +77,7 @@ router.post("/payment/zalopay-callback", async (req, res) => {
     if (!alreadyOwned) {
       user.UserCourse.push({
         CourseId: pay.CourseId,
-        CourseStatus: 1,
+        CourseStatus: 0,
         CourseProcess: []
       });
     }
@@ -86,12 +86,12 @@ router.post("/payment/zalopay-callback", async (req, res) => {
 
     await user.save();
 
-    /** 5️⃣ Update payment */
+    /** 5 Update payment */
     pay.PayStatus = 1;
     pay.ZaloPayTransId = zptransid;
     await pay.save();
 
-    console.log("✅ ZaloPay payment confirmed:", apptransid);
+    console.log(" ZaloPay payment confirmed:", apptransid);
 
     return res.json({
       return_code: 1,
