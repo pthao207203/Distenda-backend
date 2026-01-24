@@ -48,7 +48,7 @@ router.post('/confirm', async (req, res) => {
       $push: {
         UserCourse: {
           CourseId,
-          CourseStatus: 1,
+          CourseStatus: 0,
           CourseProcess: []
         }
       },

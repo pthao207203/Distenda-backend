@@ -60,6 +60,7 @@ exports.getForumPostDetail = async (req, res) => {
       status: post.PostStatus,
       content: post.Content,
       images: post.Images ?? [],
+      files: post.Files ?? [],
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
