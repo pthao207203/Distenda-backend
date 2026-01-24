@@ -355,33 +355,16 @@ module.exports.getDetailPost = async (req, res) => {
 // [POST] /forum/create
 exports.createPost = async (req, res) => {
   try {
-    const { Title, Content } = req.body;
+    const { Title = "", Content = "" } = req.body;
+
+    if (!Title.trim() && !Content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Tiêu đề hoặc nội dung không được để trống",
+      });
+    }
 
     const moderation = await moderateContent(`${Title}\n${Content}`);
-
-    // Xử lý Images từ upload
-    let images = [];
-    if (req.files && req.files.Images) {
-      const uploadedImages = Array.isArray(req.files.Images)
-        ? req.files.Images
-        : [req.files.Images];
-      images = uploadedImages.map((file) => ({
-        url: file.path || file.filename,
-        name: file.originalname,
-      }));
-    }
-
-    // Xử lý Files từ upload
-    let files = [];
-    if (req.files && req.files.Files) {
-      const uploadedFiles = Array.isArray(req.files.Files)
-        ? req.files.Files
-        : [req.files.Files];
-      files = uploadedFiles.map((file) => ({
-        url: file.path || file.filename,
-        name: file.originalname,
-      }));
-    }
 
     const newPost = await ForumPost.create({
       Title: Title.trim(),
@@ -390,12 +373,16 @@ exports.createPost = async (req, res) => {
       AuthorModel: "User",
       PostStatus: moderation.safe ? 2 : 0,
       PostDeleted: moderation.safe ? 1 : 0,
+
+      // ✅ LẤY TỪ req.body – KHÔNG PHẢI req.files
+      Images: Array.isArray(req.body.Images) ? req.body.Images : [],
+
+      Files: Array.isArray(req.body.Files) ? req.body.Files : [],
+
       createdBy: {
         UserId: req.user._id,
         model: "User",
       },
-      Images: images,
-      Files: files,
     });
 
     res.status(201).json({
@@ -403,7 +390,11 @@ exports.createPost = async (req, res) => {
       data: newPost,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("CREATE POST ERROR:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -431,47 +422,51 @@ exports.updatePost = async (req, res) => {
     const finalContent = (Content || "").trim() || post.Content;
 
     // Re-moderate
-    const moderation = await moderateContent(
-      `${finalTitle}\n${finalContent}`
+    const moderation = await moderateContent(`${finalTitle}\n${finalContent}`);
+
+    // ===== IMAGES =====
+    let images = [];
+
+    // ảnh cũ (JSON string)
+    const oldImages = req.body.ExistingImages
+      ? JSON.parse(req.body.ExistingImages || "[]")
+      : [];
+
+    images.push(
+      ...oldImages.filter(
+        (img) => typeof img === "string" && img.startsWith("http"),
+      ),
     );
 
-    // Xử lý Images
-    let images = [];
-    if (req.body.ExistingImages) {
-      const olds = Array.isArray(req.body.ExistingImages)
-        ? req.body.ExistingImages
-        : [req.body.ExistingImages];
-      images.push(...olds.filter(Boolean));
-    }
-    if (req.files?.Images) {
-      const news = Array.isArray(req.files.Images)
-        ? req.files.Images
-        : [req.files.Images];
+    // ảnh mới từ middleware
+    if (Array.isArray(req.body.Images)) {
       images.push(
-        ...news.map((f) => ({
-          url: f.path,
-          name: f.originalname,
-        }))
+        ...req.body.Images.filter(
+          (img) => typeof img === "string" && img.startsWith("http"),
+        ),
       );
     }
 
-    // Xử lý Files
+    // ===== FILES =====
     let files = [];
-    if (req.body.ExistingFiles) {
-      const olds = Array.isArray(req.body.ExistingFiles)
-        ? req.body.ExistingFiles
-        : [req.body.ExistingFiles];
-      files.push(...olds.filter(Boolean));
-    }
-    if (req.files?.Files) {
-      const news = Array.isArray(req.files.Files)
-        ? req.files.Files
-        : [req.files.Files];
+
+    // file cũ (JSON string)
+    const oldFiles = req.body.ExistingFiles
+      ? JSON.parse(req.body.ExistingFiles || "[]")
+      : [];
+
+    files.push(
+      ...oldFiles.filter(
+        (f) => typeof f === "object" && f?.url?.startsWith("http"),
+      ),
+    );
+
+    // file mới từ middleware
+    if (Array.isArray(req.body.Files)) {
       files.push(
-        ...news.map((f) => ({
-          url: f.path,
-          name: f.originalname,
-        }))
+        ...req.body.Files.filter(
+          (f) => typeof f === "object" && f?.url?.startsWith("http"),
+        ),
       );
     }
 
@@ -483,13 +478,8 @@ exports.updatePost = async (req, res) => {
       PostDeleted: moderation.safe ? 1 : 0,
     };
 
-    if (images.length > 0) {
-      updateData.Images = images;
-    }
-
-    if (files.length > 0) {
-      updateData.Files = files;
-    }
+    updateData.Images = images;
+    updateData.Files = files;
 
     // Update post - IMPORTANT: LUÔN cập nhật Images/Files
     const updated = await ForumPost.findByIdAndUpdate(
@@ -504,7 +494,7 @@ exports.updatePost = async (req, res) => {
           },
         },
       },
-      { new: true }
+      { new: true },
     ).populate("Author");
 
     // ===== FORMAT lại Author giống getDetailPost =====
