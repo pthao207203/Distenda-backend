@@ -1,8 +1,9 @@
 /* =====================================================
-   MODERATION SERVICE – FINAL (LOW QUOTA VERSION)
-   - Hard / Soft rule-based
-   - Gemini only when necessary
-   - Cache + single concurrency
+   MODERATION SERVICE – FINAL VERSION
+   - Hard rule first (fast reject, no AI)
+   - Otherwise ALWAYS call Gemini
+   - SAFE or UNSAFE đều lưu cho admin xem
+   - Fail-safe when quota / error
 ===================================================== */
 
 /* =======================
@@ -19,11 +20,12 @@ async function getGeminiAI() {
     apiKey: process.env.GEMINI_API_KEY,
   });
 
+  console.log("🤖 Gemini AI initialized");
+
   return aiInstance;
 }
 
-// ✅ Backend-stable model
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-3-flash-preview";
 
 /* =======================
    1. CACHE CONFIG
@@ -68,36 +70,24 @@ function normalizeVietnamese(text) {
 /* =======================
    4. RULE DEFINITIONS
 ======================= */
-// 🔴 HARD RULE – chắc chắn vi phạm → KHÔNG gọi Gemini
+// 🔴 HARD RULE – chắc chắn vi phạm → loại ngay, không gọi AI
 const HARD_RULES = [
   /\b(do ngu|ngu dot|oc cho|suc vat|con cho|dit me|vai lon)\b/,
-];
-
-// 🟡 SOFT RULE – cần Gemini xác định ngữ cảnh
-const SOFT_RULES = [
-  /\b(chet|giet|dam|dap|chem)\b/,
-  /\b(tu tu|ket lieu)\b/,
 ];
 
 /* =======================
    5. RULE CHECK
 ======================= */
-function checkRules(text) {
+function checkHardRules(text) {
   const normalized = normalizeVietnamese(text);
 
   for (const regex of HARD_RULES) {
     if (regex.test(normalized)) {
-      return { type: "hard", hit: true };
+      return true;
     }
   }
 
-  for (const regex of SOFT_RULES) {
-    if (regex.test(normalized)) {
-      return { type: "soft", hit: true };
-    }
-  }
-
-  return { type: "none", hit: false };
+  return false;
 }
 
 /* =======================
@@ -108,6 +98,8 @@ function checkRules(text) {
 async function geminiCheckContent(content) {
   const ai = await getGeminiAI();
 
+  console.log("🤖 CALLING GEMINI...");
+
   const response = await ai.models.generateContent({
     model: GEMINI_MODEL,
     contents: [
@@ -116,7 +108,7 @@ async function geminiCheckContent(content) {
         parts: [
           {
             text: `
-Bạn là hệ thống kiểm duyệt nội dung.
+Bạn là hệ thống kiểm duyệt nội dung diễn đàn.
 
 Chỉ trả lời đúng một từ:
 SAFE hoặc UNSAFE
@@ -130,7 +122,12 @@ Nội dung:
     ],
   });
 
-  const text = response.text().trim().toUpperCase();
+  const raw = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  const text = raw.trim().toUpperCase();
+
+  console.log("🤖 GEMINI RAW RESPONSE:", text);
+
   return text.includes("UNSAFE");
 }
 
@@ -138,45 +135,42 @@ Nội dung:
    7. MAIN MODERATION API
 ======================= */
 async function moderateContent(content) {
+  console.log("🧪 MODERATION INPUT:", content);
+
   if (!content || !content.trim()) {
     return { safe: true, reason: "empty_content" };
   }
 
-  /* 1️⃣ RULE-BASED (GIẢM QUOTA MẠNH) */
-  const ruleResult = checkRules(content);
+  /* 1️⃣ HARD RULE CHECK FIRST */
+  const hardHit = checkHardRules(content);
 
   // 🔴 HARD RULE → UNSAFE, KHÔNG GỌI GEMINI
-  if (ruleResult.type === "hard") {
+  if (hardHit) {
+    console.log("⛔ HARD RULE HIT → REJECT WITHOUT AI");
+
     return {
       safe: false,
       reason: "hard_rule_violation",
     };
   }
 
-  // 🟢 KHÔNG DÍNH RULE → SAFE, KHÔNG GỌI GEMINI
-  if (ruleResult.type === "none") {
-    return {
-      safe: true,
-      reason: "no_rule_detected",
-    };
-  }
-
-  /* 2️⃣ CACHE */
+  /* 2️⃣ CACHE CHECK */
   const key = getCacheKey(content);
   const cached = cache.get(key);
   if (cached && Date.now() - cached.time < CACHE_TTL) {
+    console.log("📦 CACHE HIT:", cached.result);
     return cached.result;
   }
 
-  /* 3️⃣ SOFT RULE → GỌI GEMINI */
+  /* 3️⃣ ALWAYS CALL GEMINI (EVEN IF LOOKS SAFE) */
   try {
-    const unsafe = await runSingle(() =>
-      geminiCheckContent(content)
-    );
+    const unsafe = await runSingle(() => geminiCheckContent(content));
+
+    console.log("🤖 GEMINI FINAL:", unsafe ? "UNSAFE" : "SAFE");
 
     const result = unsafe
       ? { safe: false, reason: "gemini_unsafe" }
-      : { safe: true, reason: "clean" };
+      : { safe: true, reason: "gemini_safe" };
 
     cache.set(key, {
       time: Date.now(),
@@ -185,16 +179,18 @@ async function moderateContent(content) {
 
     return result;
   } catch (err) {
-    // 🔴 QUOTA / 429 → FAIL-SAFE
+    // 🔴 QUOTA / 429 → FAIL-SAFE (KHÔNG CHẶN USER)
     if (err.message?.includes("429")) {
-      console.warn("Gemini quota exceeded → fallback pending");
+      console.warn("⚠️ Gemini quota exceeded → fallback safe");
+
       return {
         safe: true,
-        reason: "quota_exceeded_pending",
+        reason: "quota_exceeded_fallback",
       };
     }
 
-    console.error("Gemini moderation error:", err.message);
+    console.error("❌ Gemini moderation error:", err.message);
+
     return {
       safe: true,
       reason: "gemini_error_fallback",
