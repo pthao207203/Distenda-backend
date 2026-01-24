@@ -40,7 +40,7 @@ module.exports.loginGoogle = async (req, res) => {
     res.cookie("user_token", user.UserToken, {
       secure: true,
       httpOnly: false,
-      sameSite: 'None',
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -49,6 +49,12 @@ module.exports.loginGoogle = async (req, res) => {
       code: 200,
       message: "Đăng nhập thành công!",
       user: user.UserToken,
+      user_info: {
+        _id: user._id,
+        UserFullName: user.UserFullName,
+        UserEmail: user.UserEmail,
+        UserAvatar: user.UserAvatar || "",
+      },
     });
   } catch (error) {
     console.error(error);
@@ -61,7 +67,7 @@ const axios = require("axios");
 
 module.exports.loginFacebook = async (req, res) => {
   const { accessToken, userID } = req.body;
-  console.log(req.body)
+  console.log(req.body);
   try {
     // Gọi API Facebook để lấy thông tin user
     const fbRes = await axios.get(`https://graph.facebook.com/${userID}`, {
@@ -87,7 +93,7 @@ module.exports.loginFacebook = async (req, res) => {
     res.cookie("user_token", user.UserToken, {
       secure: true,
       httpOnly: false,
-      sameSite: 'None',
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -95,6 +101,12 @@ module.exports.loginFacebook = async (req, res) => {
       code: 200,
       message: "Đăng nhập Facebook thành công!",
       user: user.UserToken,
+      user_info: {
+        _id: user._id,
+        UserFullName: user.UserFullName,
+        UserEmail: user.UserEmail,
+        UserAvatar: user.UserAvatar || "",
+      },
     });
   } catch (error) {
     console.error(error);
@@ -163,7 +175,7 @@ module.exports.loginPost = async (req, res) => {
   res.cookie("user_token", user.UserToken, {
     secure: true,
     httpOnly: false,
-    sameSite: 'None',
+    sameSite: "None",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   // req.flash("success", "Đăng nhập thành công!");
@@ -173,6 +185,12 @@ module.exports.loginPost = async (req, res) => {
     code: 200,
     message: "Đăng nhập thành công!",
     token: user.UserToken,
+    user_info: {
+      _id: user._id,
+      UserFullName: user.UserFullName,
+      UserEmail: user.UserEmail,
+      UserAvatar: user.UserAvatar || "",
+    },
   });
 };
 
@@ -181,7 +199,7 @@ module.exports.logout = (req, res) => {
   res.clearCookie("user_token", {
     secure: true,
     httpOnly: false,
-    sameSite: 'None',
+    sameSite: "None",
   });
 
   // res.redirect(`/auth/login`);
@@ -235,7 +253,7 @@ module.exports.registerPost = async (req, res) => {
   res.cookie("user_token", user.UserToken, {
     secure: true,
     httpOnly: false,
-    sameSite: 'None',
+    sameSite: "None",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   // req.flash("success", "Đăng ký thành công!");
@@ -244,6 +262,12 @@ module.exports.registerPost = async (req, res) => {
     code: 200,
     message: "Đăng ký thành công!",
     token: user.UserToken,
+    user_info: {
+      _id: user._id,
+      UserFullName: user.UserFullName,
+      UserEmail: user.UserEmail,
+      UserAvatar: user.UserAvatar || "",
+    },
   });
 };
 
@@ -299,19 +323,19 @@ module.exports.passwordForgot = async (req, res) => {
 // [POST] /auth/password/otp
 module.exports.passwordOTP = async (req, res) => {
   try {
-    const UserEmail = req.body.UserEmail
-    const UserOTP = req.body.UserOTP
-    console.log(UserEmail, UserOTP)
+    const UserEmail = req.body.UserEmail;
+    const UserOTP = req.body.UserOTP;
+    console.log(UserEmail, UserOTP);
 
     const result = await ForgotPassword.findOne({
       FPUserEmail: UserEmail,
-      FPOTP: UserOTP
-    })
+      FPOTP: UserOTP,
+    });
     if (!result) {
       res.json({
         code: 400,
-        message: "OTP không hợp lệ!"
-      })
+        message: "OTP không hợp lệ!",
+      });
       return;
     }
 
@@ -321,18 +345,17 @@ module.exports.passwordOTP = async (req, res) => {
     res.cookie("user_token", user.UserToken, {
       secure: true,
       httpOnly: false,
-      sameSite: 'None',
+      sameSite: "None",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.json({
       code: 200,
-      message: "OTP hợp lệ!"
-    })
+      message: "OTP hợp lệ!",
+    });
   } catch (e) {
-    console.log(e)
+    console.log(e);
   }
-
 };
 
 // [POST] /auth/password/new

@@ -59,7 +59,8 @@ exports.getForumPostDetail = async (req, res) => {
       reviewedAt: lastEdit?.editedAt || post.updatedAt || null,
       status: post.PostStatus,
       content: post.Content,
-      images: [...(post.Image ? [post.Image] : []), ...(post.Images || [])],
+      images: post.Images ?? [],
+      files: post.Files ?? [],
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

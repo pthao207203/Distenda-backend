@@ -87,15 +87,24 @@ const forumPostSchema = new mongoose.Schema(
       trim: true,
     },
 
+    Files: [
+      {
+        url: { type: String, required: true },
+        name: { type: String, required: true },
+        size: Number,
+        mimeType: String,
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+
     // Hỗ trợ slug nếu muốn chia sẻ link đẹp (ví dụ: /forum/bai-viet-tieu-de-abc)
     PostSlug: {
       type: String,
-      slug: ["Title"], 
+      slug: ["Title"],
       unique: true,
       sparse: true, // cho phép nhiều bài không có slug
     },
 
-    Image: String, // ảnh chính
     Images: [String], // nhiều ảnh
     Reactions: [reactionSchema],
     Comments: [commentSchema],

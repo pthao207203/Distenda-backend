@@ -19,6 +19,19 @@ exports.getNewestPosts = async (req, res) => {
 
     for (let post of posts) {
       let postObj = post.toObject();
+      const userId = req.user?._id?.toString();
+
+      postObj.myReaction = null;
+
+      if (userId && Array.isArray(postObj.Reactions)) {
+        const myReaction = postObj.Reactions.find(
+          (r) => r.User?.toString() === userId,
+        );
+
+        if (myReaction) {
+          postObj.myReaction = myReaction.Type;
+        }
+      }
 
       // AUTHOR LÀ USER
       if (postObj.AuthorModel === "User" && postObj.Author) {
@@ -95,18 +108,126 @@ exports.getNewestPosts = async (req, res) => {
 exports.getMyPosts = async (req, res) => {
   try {
     const userId = req.user._id;
+    const { status } = req.query; // Lấy status từ query parameter
 
-    const posts = await ForumPost.find({
+    let filter = {
       Author: userId,
-      PostDeleted: 1,
-    }).sort({ createdAt: -1 });
+    };
+
+    switch (status) {
+      case "approved":
+        filter.PostStatus = 1;
+        filter.PostDeleted = 1;
+        break;
+
+      case "pending":
+        filter.PostStatus = 2;
+        filter.PostDeleted = 1;
+        break;
+
+      case "rejected":
+        filter.PostStatus = 0;
+        filter.PostDeleted = 0;
+        break;
+
+      case "deleted":
+        filter.PostDeleted = 0;
+        break;
+
+      default:
+        // all
+        filter.PostDeleted = 1;
+    }
+
+    let posts = await ForumPost.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("Author");
+
+    const result = [];
+
+    for (let post of posts) {
+      let postObj = post.toObject();
+      const userId = req.user?._id?.toString();
+
+      postObj.myReaction = null;
+
+      if (userId && Array.isArray(postObj.Reactions)) {
+        const myReaction = postObj.Reactions.find(
+          (r) => r.User?.toString() === userId,
+        );
+
+        if (myReaction) {
+          postObj.myReaction = myReaction.Type;
+        }
+      }
+
+      if (postObj.AuthorModel === "User" && postObj.Author) {
+        const user = await User.findById(postObj.Author._id).lean();
+        let member = "Thành viên đồng";
+
+        if (user?.UserMoney) {
+          const money = user.UserMoney;
+          switch (true) {
+            case money > 10000000:
+              member = "Thành viên Vip";
+              break;
+            case money >= 5000000:
+              member = "Thành viên vàng";
+              break;
+            case money >= 1000000:
+              member = "Thành viên bạc";
+              break;
+            default:
+              member = "Thành viên đồng";
+          }
+        }
+
+        postObj.Author = {
+          _id: postObj.Author._id,
+          name: postObj.Author.UserFullName,
+          avatar:
+            postObj.Author.UserAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          member: member,
+          type: "User",
+        };
+      }
+
+      if (postObj.AuthorModel === "Admin" && postObj.Author) {
+        const admin = await Admin.findById(postObj.Author._id).lean();
+        let roleName = "Admin";
+
+        if (admin?.AdminRole_id) {
+          const role = await Role.findById(admin.AdminRole_id).lean();
+          if (role) {
+            roleName = role.RoleName;
+          }
+        }
+
+        postObj.Author = {
+          _id: postObj.Author._id,
+          name: postObj.Author.AdminFullName,
+          avatar:
+            postObj.Author.AdminAvatar ||
+            "https://cdn.builder.io/api/v1/image/assets/TEMP/bbae0514e8058efa2ff3c88f32951fbd7beba3099187677c6ba1c2f96547ea3f?placeholderIfAbsent=true&apiKey=e677dfd035d54dfb9bce1976069f6b0e",
+          role: roleName,
+          type: "Admin",
+        };
+      }
+
+      result.push(postObj);
+    }
 
     res.status(200).json({
       success: true,
-      data: posts,
+      data: result,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error in getMyPosts:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -118,7 +239,7 @@ module.exports.getDetailPost = async (req, res) => {
     let post = await ForumPost.findOne({
       _id: postId,
       PostDeleted: 1,
-      PostStatus: 1,
+      PostStatus: { $in: [1, 2] },
     })
       .populate("Author")
       .populate("Comments.Author", "UserFullName UserAvatar")
@@ -131,9 +252,19 @@ module.exports.getDetailPost = async (req, res) => {
         message: "Post not found",
       });
     }
+    const userId = req.user?._id?.toString();
 
-    // ===== GIỮ NGUYÊN TOÀN BỘ XỬ LÝ AUTHOR + COMMENT =====
-    // (KHÔNG ĐỤNG DÒNG NÀO – giống hệt code gốc của bạn)
+    post.myReaction = null;
+
+    if (userId && Array.isArray(post.Reactions)) {
+      const myReaction = post.Reactions.find(
+        (r) => r.User?.toString() === userId,
+      );
+
+      if (myReaction) {
+        post.myReaction = myReaction.Type;
+      }
+    }
 
     if (post.AuthorModel === "User" && post.Author) {
       const user = await User.findById(post.Author._id).lean();
@@ -191,7 +322,7 @@ module.exports.getDetailPost = async (req, res) => {
               avatar: comment.Author.UserAvatar,
             }
           : null,
-        replies: comment.Replies
+        Replies: comment.Replies
           ? comment.Replies.map((reply) => ({
               ...reply,
               Author: reply.Author
@@ -224,20 +355,29 @@ module.exports.getDetailPost = async (req, res) => {
 // [POST] /forum/create
 exports.createPost = async (req, res) => {
   try {
-    const { Title, Content, Image, Images } = req.body;
+    const { Title = "", Content = "" } = req.body;
+
+    if (!Title.trim() && !Content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Tiêu đề hoặc nội dung không được để trống",
+      });
+    }
 
     const moderation = await moderateContent(`${Title}\n${Content}`);
 
     const newPost = await ForumPost.create({
-      Title,
-      Content,
-      Image,
-      Images,
+      Title: Title.trim(),
+      Content: Content.trim(),
       Author: req.user._id,
       AuthorModel: "User",
-
       PostStatus: moderation.safe ? 2 : 0,
       PostDeleted: moderation.safe ? 1 : 0,
+
+      // ✅ LẤY TỪ req.body – KHÔNG PHẢI req.files
+      Images: Array.isArray(req.body.Images) ? req.body.Images : [],
+
+      Files: Array.isArray(req.body.Files) ? req.body.Files : [],
 
       createdBy: {
         UserId: req.user._id,
@@ -250,31 +390,102 @@ exports.createPost = async (req, res) => {
       data: newPost,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("CREATE POST ERROR:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // [PUT] /forum/:PostID/edit
-// ✅ BỎ PostStatus – CÒN LẠI GIỮ NGUYÊN
 exports.updatePost = async (req, res) => {
   try {
     const { PostID } = req.params;
-    const { Title, Content, Image, Images } = req.body;
+    const { Title, Content } = req.body;
 
     const post = await ForumPost.findById(PostID);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    // Check authorization
     if (post.Author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Check if post is deleted
+    if (post.PostDeleted === 0) {
+      return res.status(400).json({ message: "Cannot edit deleted post" });
+    }
+
+    // LUÔN dùng title/content mới
+    const finalTitle = (Title || "").trim() || post.Title;
+    const finalContent = (Content || "").trim() || post.Content;
+
+    // Re-moderate
+    const moderation = await moderateContent(`${finalTitle}\n${finalContent}`);
+
+    // ===== IMAGES =====
+    let images = [];
+
+    // ảnh cũ (JSON string)
+    const oldImages = req.body.ExistingImages
+      ? JSON.parse(req.body.ExistingImages || "[]")
+      : [];
+
+    images.push(
+      ...oldImages.filter(
+        (img) => typeof img === "string" && img.startsWith("http"),
+      ),
+    );
+
+    // ảnh mới từ middleware
+    if (Array.isArray(req.body.Images)) {
+      images.push(
+        ...req.body.Images.filter(
+          (img) => typeof img === "string" && img.startsWith("http"),
+        ),
+      );
+    }
+
+    // ===== FILES =====
+    let files = [];
+
+    // file cũ (JSON string)
+    const oldFiles = req.body.ExistingFiles
+      ? JSON.parse(req.body.ExistingFiles || "[]")
+      : [];
+
+    files.push(
+      ...oldFiles.filter(
+        (f) => typeof f === "object" && f?.url?.startsWith("http"),
+      ),
+    );
+
+    // file mới từ middleware
+    if (Array.isArray(req.body.Files)) {
+      files.push(
+        ...req.body.Files.filter(
+          (f) => typeof f === "object" && f?.url?.startsWith("http"),
+        ),
+      );
+    }
+
+    // Build update data
+    const updateData = {
+      Title: finalTitle,
+      Content: finalContent,
+      PostStatus: moderation.safe ? 2 : 0,
+      PostDeleted: moderation.safe ? 1 : 0,
+    };
+
+    updateData.Images = images;
+    updateData.Files = files;
+
+    // Update post - IMPORTANT: LUÔN cập nhật Images/Files
     const updated = await ForumPost.findByIdAndUpdate(
       PostID,
       {
-        Title,
-        Content,
-        Image,
-        Images,
+        ...updateData,
         $push: {
           editedBy: {
             UserId: req.user._id,
@@ -284,19 +495,55 @@ exports.updatePost = async (req, res) => {
         },
       },
       { new: true },
-    );
+    ).populate("Author");
+
+    // ===== FORMAT lại Author giống getDetailPost =====
+    let formattedPost = updated.toObject();
+
+    if (formattedPost.AuthorModel === "User" && formattedPost.Author) {
+      const user = await User.findById(formattedPost.Author._id).lean();
+      let member = "Thành viên đồng";
+
+      if (user?.UserMoney) {
+        const money = user.UserMoney;
+        switch (true) {
+          case money > 10000000:
+            member = "Thành viên Vip";
+            break;
+          case money >= 5000000:
+            member = "Thành viên vàng";
+            break;
+          case money >= 1000000:
+            member = "Thành viên bạc";
+            break;
+        }
+      }
+
+      formattedPost.Author = {
+        _id: user._id,
+        name: user.UserFullName,
+        avatar: user.UserAvatar,
+        member,
+        type: "User",
+      };
+    }
+
+    console.log("=== Updated post ===", formattedPost);
 
     res.status(200).json({
       success: true,
-      data: updated,
+      data: formattedPost,
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error("=== Update error ===", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
 // [DELETE] /forum/:PostID/delete
-// ✅ SỬA DUY NHẤT: PostDeleted = 0
 exports.deletePost = async (req, res) => {
   try {
     const { PostID } = req.params;
@@ -304,10 +551,12 @@ exports.deletePost = async (req, res) => {
     const post = await ForumPost.findById(PostID);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    // Check authorization
     if (post.Author.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Soft delete - set PostDeleted = 0
     await ForumPost.findByIdAndUpdate(PostID, {
       PostDeleted: 0,
       deletedBy: {
@@ -322,7 +571,7 @@ exports.deletePost = async (req, res) => {
       message: "Deleted successfully",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -338,18 +587,24 @@ exports.reactToPost = async (req, res) => {
       $pull: { Reactions: { User: userId } },
     });
 
-    const updated = await ForumPost.findByIdAndUpdate(
-      PostID,
-      {
-        $addToSet: {
-          Reactions: {
-            User: userId,
-            Type: type,
+    let updated;
+    if (type) {
+      updated = await ForumPost.findByIdAndUpdate(
+        PostID,
+        {
+          $push: {
+            Reactions: {
+              User: userId,
+              Type: type,
+            },
           },
         },
-      },
-      { new: true },
-    );
+        { new: true },
+      );
+    } else {
+      // Nếu hủy: chỉ lấy post hiện tại sau khi pull
+      updated = await ForumPost.findById(PostID);
+    }
 
     res.status(200).json({
       success: true,

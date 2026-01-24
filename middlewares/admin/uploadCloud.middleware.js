@@ -1,5 +1,5 @@
-const cloudinary = require('cloudinary').v2
-const streamifier = require('streamifier')
+const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -9,7 +9,7 @@ cloudinary.config({
 
 module.exports.upload = (req, res, next) => {
   if (req.file) {
-    let streamUpload = (req, resourceType = 'auto') => {
+    let streamUpload = (req, resourceType = "auto") => {
       return new Promise((resolve, reject) => {
         let stream = cloudinary.uploader.upload_stream(
           { resource_type: resourceType },
@@ -19,7 +19,7 @@ module.exports.upload = (req, res, next) => {
             } else {
               reject(error);
             }
-          }
+          },
         );
 
         streamifier.createReadStream(req.file.buffer).pipe(stream);
@@ -28,7 +28,7 @@ module.exports.upload = (req, res, next) => {
 
     async function upload(req) {
       const fileType = req.file.mimetype;
-      const resourceType = fileType.startsWith('image/') ? 'image' : 'raw';
+      const resourceType = fileType.startsWith("image/") ? "image" : "raw";
 
       let result = await streamUpload(req, resourceType);
       req.body[req.file.fieldname] = `${result.secure_url}`;
@@ -39,8 +39,7 @@ module.exports.upload = (req, res, next) => {
   } else {
     next();
   }
-
-}
+};
 
 module.exports.uploads = async (req, res, next) => {
   if (req.files) {
@@ -73,10 +72,70 @@ module.exports.uploads = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('Error uploading files:', error);
-      return res.status(500).json({ error: 'Failed to upload files' });
+      console.error("Error uploading files:", error);
+      return res.status(500).json({ error: "Failed to upload files" });
     }
   } else {
     next();
+  }
+};
+
+const uploadToCloudinary = (file, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "forum",
+        resource_type: "auto", // tự động nhận diện image | raw | video
+        ...options,
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
+
+    streamifier.createReadStream(file.buffer).pipe(stream);
+  });
+};
+
+module.exports.uploadMultipleFields = async (req, res, next) => {
+  try {
+    // ===== IMAGES =====
+    req.body.Images = [];
+
+    if (req.files?.Images?.length > 0) {
+      const imagePromises = req.files.Images.map((file) =>
+        uploadToCloudinary(file, { resource_type: "image" }),
+      );
+
+      const uploadedImages = await Promise.all(imagePromises);
+      req.body.Images = uploadedImages.map((r) => r.secure_url);
+    }
+
+    // ===== FILES =====
+    req.body.Files = [];
+
+    if (req.files?.Files?.length > 0) {
+      const filePromises = req.files.Files.map(async (file) => {
+        const result = await uploadToCloudinary(file, { resource_type: "raw" });
+        return {
+          url: result.secure_url,
+          name: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+        };
+      });
+
+      req.body.Files = await Promise.all(filePromises);
+    }
+
+    next();
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi upload file lên Cloudinary",
+      error: error.message,
+    });
   }
 };
